@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>比赛帖子生成器</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root {
+  --purple: #7B5EA7;
+  --purple-light: #9B7BC7;
+  --purple-dark: #5A3E85;
+  --gold: #c9a84c;
+  --gold-light: #e8cc88;
+  --ai-dark-1: #160d2e;
+  --ai-dark-2: #241450;
+  --ai-dark-3: #0c1635;
+  --ai-light-1: #ece8f4;
+  --ai-light-2: #d8d0ec;
+  --ai-light-3: #bcd8cc;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans SC', sans-serif;
+  background: #0a0a18;
+  color: #eee;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 80px;
+}
+h1 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 1.6rem;
+  color: #c9b8e8;
+  margin-bottom: 6px;
+  letter-spacing: 2px;
+}
+.subtitle { color: #666; font-size: 0.85rem; margin-bottom: 36px; }
+
+.panel {
+  width: 100%; max-width: 880px;
+  background: #12122a;
+  border: 1px solid #252545;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 24px;
+}
+.panel h2 {
+  font-family: 'Noto Serif SC', serif;
+  font-size: 0.95rem;
+  color: var(--purple-light);
+  margin-bottom: 18px;
+  letter-spacing: 1px;
+  border-left: 3px solid var(--purple);
+  padding-left: 10px;
+}
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.full { grid-column: 1 / -1; }
+label { display: block; font-size: 0.77rem; color: #999; margin-bottom: 4px; }
+input, textarea {
+  width: 100%;
+  background: #0a0a1e;
+  border: 1px solid #252545;
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: #ddd;
+  font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.86rem;
+  transition: border 0.2s;
+  resize: vertical;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--purple); }
+textarea { min-height: 68px; }
+.hint { font-size: 0.71rem; color: #555; margin-top: 3px; }
+.ai-panel {
+  border-color: rgba(123,94,167,0.48);
+  background: linear-gradient(180deg,#15152e 0%,#101026 100%);
+}
+.ai-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+.ai-status {
+  min-height: 22px;
+  font-size: 0.78rem;
+  color: #8e86aa;
+  line-height: 1.6;
+}
+.ai-status.ok { color: #9fd6bc; }
+.ai-status.err { color: #e2a2a2; }
+.ai-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(123,94,167,0.08);
+  border: 1px solid rgba(123,94,167,0.18);
+  color: #8f86aa;
+  font-size: 0.73rem;
+  line-height: 1.7;
+}
+
+.scores { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.score-item label { font-size: 0.74rem; }
+.score-row { display: flex; align-items: center; gap: 6px; }
+.score-row input { width: 52px; }
+.score-row span { font-size: 0.76rem; color: #666; }
+
+.style-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.style-card-input { background: #0a0a1e; border: 1px solid #252545; border-radius: 10px; padding: 12px 14px; }
+.style-card-input input { margin-bottom: 6px; }
+.style-card-input label { color: #777; }
+
+.prize-tiers { display: flex; flex-direction: column; gap: 10px; }
+.prize-tier {
+  background: #0a0a1e; border: 1px solid #252545; border-radius: 10px;
+  padding: 12px 14px; display: grid; grid-template-columns: 100px 1fr 1fr; gap: 8px; align-items: start;
+}
+
+.actions { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+.btn {
+  padding: 10px 26px; border: none; border-radius: 8px;
+  font-family: 'Noto Sans SC', sans-serif; font-size: 0.88rem;
+  cursor: pointer; font-weight: 500; transition: all 0.2s;
+}
+.btn-primary { background: linear-gradient(135deg, var(--purple), var(--purple-dark)); color: white; box-shadow: 0 4px 16px rgba(123,94,167,0.4); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(123,94,167,0.5); }
+.btn-secondary { background: transparent; border: 1px solid #303058; color: #aaa; }
+.btn-secondary:hover { border-color: var(--purple); color: var(--purple-light); }
+
+#output-area { width: 100%; max-width: 880px; display: none; margin-top: 24px; }
+.output-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.output-header h2 { font-family: 'Noto Serif SC', serif; color: var(--purple-light); font-size: 1rem; }
+.tabs { display: flex; gap: 6px; }
+.tab { padding: 5px 14px; border-radius: 20px; border: 1px solid #303058; background: transparent; color: #999; font-size: 0.8rem; cursor: pointer; font-family: 'Noto Sans SC', sans-serif; transition: all 0.2s; }
+.tab.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+.dl-hint { background: #12122a; border: 1px solid #252545; border-radius: 10px; padding: 10px 16px; font-size: 0.8rem; color: #777; margin-bottom: 14px; }
+.dl-hint strong { color: var(--purple-light); }
+.download-actions { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 14px; align-items:center; }
+.download-status { font-size:0.78rem; color:#8e86aa; }
+
+.image-nav { display: flex; gap: 8px; margin: 0 0 12px; flex-wrap: wrap; }
+.img-tab { padding: 5px 16px; border-radius: 20px; border: 1px solid #303058; background: transparent; color: #999; font-size: 0.78rem; cursor: pointer; font-family: 'Noto Sans SC', sans-serif; transition: all 0.2s; }
+.img-tab.active { background: var(--purple); border-color: var(--purple); color: white; }
+
+.card-wrap { display: none; margin: 0 auto; width: fit-content; border-radius: 12px; overflow: hidden; }
+.card-wrap.show { display: block; }
+
+body.visual-editorial .c2-center { left:58px; transform:translateY(-52%); text-align:left; width:620px; }
+body.visual-editorial .c2-badge { left:58px; transform:none; }
+body.visual-editorial .c2-foot { left:58px; transform:none; }
+body.visual-editorial .c1-title-area { padding-top:58px; }
+body.visual-editorial .c1-box { top:252px; }
+body.visual-editorial .c3-grid { gap:18px; }
+body.visual-future .c1-box,
+body.visual-future .c3-style-card,
+body.visual-future .c4-tier,
+body.visual-future .c4-extra-item { border-radius:4px; }
+body.visual-future .c2-en,
+body.visual-future .c4-label,
+body.visual-future .c3-label { letter-spacing:7px; }
+body.visual-future .c3-grid { gap:10px; }
+body.visual-organic .c1-box,
+body.visual-organic .c3-style-card,
+body.visual-organic .c4-tier,
+body.visual-organic .c4-extra-item { border-radius:24px; }
+body.visual-organic .c3-grid { gap:18px; }
+body.visual-organic .c2-badge { border-radius:28px; padding-left:34px; padding-right:34px; }
+body.visual-gallery .c2-center { top:46%; }
+body.visual-gallery .c2-slogan-zh { margin-top:42px; }
+body.visual-gallery .c1-box { top:230px; padding:28px 34px; }
+body.visual-gallery .c3-style-card { padding:24px 24px; }
+body.visual-gallery .c4-tiers { gap:20px; }
+body.tpl-crystal .c2-rings { background:
+  linear-gradient(128deg,transparent 0 18%,rgba(255,255,255,0.11) 18% 18.5%,transparent 18.5% 44%,rgba(255,255,255,0.08) 44% 44.5%,transparent 44.5%),
+  linear-gradient(35deg,transparent 0 36%,rgba(255,255,255,0.08) 36% 36.5%,transparent 36.5% 70%,rgba(255,255,255,0.06) 70% 70.5%,transparent 70.5%); }
+body.tpl-crystal .c2-center { top:47%; left:52%; width:620px; }
+body.tpl-crystal .c2-en { font-size:1.5rem; letter-spacing:9px; }
+body.tpl-crystal .c2-zh { font-size:3.7rem; line-height:1.05; }
+body.tpl-crystal .c2-slogan-zh { font-size:5.6rem; position:absolute; left:-58px; top:-245px; color:rgba(255,255,255,0.075); letter-spacing:2px; white-space:nowrap; }
+body.tpl-crystal .c2-badge { bottom:92px; transform:translateX(-50%) skewX(-10deg); }
+body.tpl-crystal .c1-bg::after { opacity:0.18; transform:skewY(-8deg) translateY(36px); }
+body.tpl-crystal .c3-style-card { clip-path:polygon(0 0,92% 0,100% 12%,100% 100%,8% 100%,0 88%); border-radius:0; }
+body.tpl-crystal .c4-grid-lines { background-size:54px 54px; opacity:1; }
+body.tpl-cyber .c2-bg,
+body.tpl-cyber .c4-bg { filter:saturate(1.35) contrast(1.08); }
+body.tpl-cyber .c2-rings { background-image:
+  linear-gradient(rgba(255,255,255,0.08) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,0.08) 1px,transparent 1px); background-size:46px 46px; }
+body.tpl-cyber .c2-center { top:57%; left:54px; transform:translateY(-50%); width:690px; text-align:left; }
+body.tpl-cyber .c2-en { font-size:1.25rem; letter-spacing:10px; border-bottom:2px solid var(--gold); padding-bottom:16px; width:620px; }
+body.tpl-cyber .c2-zh { text-transform:uppercase; text-shadow:3px 0 0 var(--purple),-3px 0 0 var(--gold); }
+body.tpl-cyber .c2-date { font-size:2.1rem; color:var(--gold-light); }
+body.tpl-cyber .c2-badge { left:auto; right:48px; bottom:76px; transform:none; border-radius:0; }
+body.tpl-cyber .c2-foot { left:54px; transform:none; }
+body.tpl-cyber .c1-box,
+body.tpl-cyber .c3-style-card,
+body.tpl-cyber .c4-tier { border-radius:2px; border-width:2px; }
+body.tpl-ink .c2-rings { background:radial-gradient(circle at 32% 38%,rgba(255,255,255,0.12),transparent 24%),radial-gradient(circle at 64% 62%,rgba(255,255,255,0.08),transparent 30%); filter:blur(2px); }
+body.tpl-ink .c1-bg::after { opacity:0.7; height:420px; }
+body.tpl-ink .c2-center { top:45%; left:96px; transform:translateY(-50%); text-align:left; width:560px; }
+body.tpl-ink .c2-en { font-size:1.25rem; letter-spacing:4px; opacity:0.72; }
+body.tpl-ink .c2-zh { writing-mode:vertical-rl; text-orientation:mixed; font-size:3.3rem; max-height:540px; margin:0 0 0 auto; letter-spacing:6px; }
+body.tpl-ink .c2-slogan-zh { position:absolute; left:0; top:520px; font-size:2.5rem; color:rgba(255,255,255,0.18); white-space:nowrap; }
+body.tpl-ink .c2-badge { left:96px; bottom:92px; transform:none; border-radius:0; border-left:none; border-right:none; }
+body.tpl-ink .c2-foot { right:72px; left:auto; transform:none; }
+body.tpl-ink .c3-style-card,
+body.tpl-ink .c1-box { box-shadow:none; border-color:rgba(30,24,18,0.12); }
+body.tpl-botanical .c2-rings { background:
+  radial-gradient(ellipse at 18% 78%,rgba(255,255,255,0.13),transparent 28%),
+  radial-gradient(ellipse at 86% 18%,rgba(255,255,255,0.1),transparent 24%); }
+body.tpl-botanical .c1-bg::after { opacity:0.28; height:240px; }
+body.tpl-botanical .c2-center { top:43%; width:610px; }
+body.tpl-botanical .c2-en { font-size:1.35rem; letter-spacing:6px; }
+body.tpl-botanical .c2-zh { font-size:3.5rem; line-height:1.05; }
+body.tpl-botanical .c2-date { display:inline-block; padding:10px 28px; border-radius:32px; background:rgba(255,255,255,0.1); }
+body.tpl-botanical .c2-slogan-zh { margin-top:48px; font-size:4.6rem; color:rgba(255,255,255,0.08); }
+body.tpl-botanical .c2-badge { bottom:72px; border-radius:40px; padding:12px 34px; }
+body.tpl-botanical .c3-style-card,
+body.tpl-botanical .c4-tier { border-radius:28px 8px 28px 8px; }
+body.tpl-atelier .c2-rings { background:none; }
+body.tpl-atelier .c2-center { top:40%; width:690px; }
+body.tpl-atelier .c2-en { font-size:1.05rem; letter-spacing:12px; margin-bottom:34px; }
+body.tpl-atelier .c2-zh { font-size:4.7rem; line-height:0.98; }
+body.tpl-atelier .c2-date { position:absolute; top:520px; left:50%; transform:translateX(-50%); border-top:1px solid rgba(255,255,255,0.28); border-bottom:1px solid rgba(255,255,255,0.28); padding:16px 60px; }
+body.tpl-atelier .c2-slogan-zh { margin-top:140px; font-size:1.5rem; color:rgba(255,255,255,0.34); }
+body.tpl-atelier .c2-badge { bottom:70px; border:none; }
+body.tpl-atelier .c1-bg::after { display:none; }
+body.tpl-atelier .c1-box,
+body.tpl-atelier .c3-style-card,
+body.tpl-atelier .c4-tier { box-shadow:0 18px 50px rgba(0,0,0,0.12); }
+body.tpl-poster .c2-center { top:57%; left:46px; transform:translateY(-50%); text-align:left; width:710px; }
+body.tpl-poster .c2-en { font-size:1.05rem; letter-spacing:5px; margin-bottom:26px; }
+body.tpl-poster .c2-zh { font-size:5.3rem; line-height:0.94; max-width:690px; }
+body.tpl-poster .c2-date { position:absolute; right:0; top:-96px; font-size:2.6rem; color:var(--gold-light); }
+body.tpl-poster .c2-slogan-zh { position:absolute; top:-255px; left:-20px; font-size:8.8rem; color:rgba(255,255,255,0.08); }
+body.tpl-poster .c2-badge { left:46px; transform:none; bottom:70px; border-radius:0; }
+body.tpl-poster .c2-foot { left:46px; transform:none; }
+body.tpl-poster .c3-grid { grid-template-columns:1fr; gap:10px; }
+body.tpl-poster .c3-style-card { min-height:0; padding:12px 22px; }
+body.tpl-split .c2-bg { background:linear-gradient(90deg,var(--ai-dark-1) 0 48%,var(--gold) 48% 49.4%,var(--ai-dark-3) 49.4% 100%); }
+body.tpl-split .c2-rings { background:linear-gradient(90deg,rgba(255,255,255,0.08) 0 1px,transparent 1px) 0 0/80px 100%; }
+body.tpl-split .c2-center { top:50%; left:52px; transform:translateY(-50%); text-align:left; width:360px; }
+body.tpl-split .c2-en { font-size:1rem; letter-spacing:8px; }
+body.tpl-split .c2-zh { font-size:4.1rem; line-height:0.98; }
+body.tpl-split .c2-date { position:absolute; left:455px; top:35px; writing-mode:vertical-rl; font-size:3.2rem; color:var(--gold-light); }
+body.tpl-split .c2-slogan-zh { position:absolute; left:438px; top:205px; width:260px; font-size:4.8rem; line-height:1; color:rgba(255,255,255,0.1); }
+body.tpl-split .c2-badge { left:auto; right:42px; bottom:54px; transform:none; }
+body.tpl-blueprint .c2-bg { background:linear-gradient(145deg,#06182b 0%,#092f52 48%,#02101f 100%); }
+body.tpl-blueprint .c2-rings { background-image:linear-gradient(rgba(130,220,255,0.13) 1px,transparent 1px),linear-gradient(90deg,rgba(130,220,255,0.13) 1px,transparent 1px),linear-gradient(45deg,transparent 49.5%,rgba(130,220,255,0.12) 50%,transparent 50.5%); background-size:40px 40px,40px 40px,120px 120px; }
+body.tpl-blueprint .c2-center { top:50%; left:50%; width:650px; border:1px solid rgba(150,230,255,0.38); padding:54px 42px; }
+body.tpl-blueprint .c2-en { font-size:1.1rem; color:#9ee7ff; }
+body.tpl-blueprint .c2-zh { font-size:3.4rem; text-shadow:none; }
+body.tpl-blueprint .c2-badge { border-color:#9ee7ff; }
+body.tpl-brutal .c2-bg { background:linear-gradient(135deg,#101010 0 58%,var(--gold) 58% 72%,var(--purple) 72% 100%); }
+body.tpl-brutal .c2-rings { background:repeating-linear-gradient(-12deg,rgba(255,255,255,0.13) 0 8px,transparent 8px 30px); mix-blend-mode:screen; }
+body.tpl-brutal .c2-logo { left:52px; transform:none; top:44px; text-align:left; }
+body.tpl-brutal .c2-center { top:52%; left:42px; transform:translateY(-50%); text-align:left; width:720px; }
+body.tpl-brutal .c2-en { font-family:'Noto Sans SC',sans-serif; font-size:1rem; font-weight:700; letter-spacing:2px; background:var(--gold); color:#111; display:inline-block; padding:8px 14px; }
+body.tpl-brutal .c2-zh { font-family:'Noto Sans SC',sans-serif; font-size:5.1rem; line-height:0.9; text-shadow:none; letter-spacing:0; }
+body.tpl-brutal .c2-date { font-size:2.2rem; font-weight:700; color:#fff; }
+body.tpl-brutal .c2-badge { left:42px; bottom:58px; transform:none; border-radius:0; background:#fff; color:#111; }
+body.tpl-luxe .c2-bg { background:radial-gradient(circle at 50% 32%,rgba(255,255,255,0.16),transparent 22%),linear-gradient(160deg,#050505 0%,#1c1520 48%,#070505 100%); }
+body.tpl-luxe .c2-rings { background:radial-gradient(ellipse at center,transparent 0 36%,rgba(232,204,136,0.34) 36.3% 36.8%,transparent 37% 55%,rgba(232,204,136,0.18) 55.3% 55.8%,transparent 56%); }
+body.tpl-luxe .c2-center { top:48%; width:600px; }
+body.tpl-luxe .c2-en { font-size:1rem; letter-spacing:13px; color:var(--gold-light); }
+body.tpl-luxe .c2-zh { font-size:3.8rem; }
+body.tpl-luxe .c2-date { color:var(--gold-light); }
+body.tpl-luxe .c2-badge { bottom:80px; border-color:var(--gold); }
+body.tpl-neon .c2-bg { background:linear-gradient(145deg,#070014 0%,#1f003e 46%,#001d2b 100%); }
+body.tpl-neon .c2-rings { background:radial-gradient(circle at 20% 20%,rgba(255,0,180,0.34),transparent 24%),radial-gradient(circle at 80% 68%,rgba(0,240,255,0.28),transparent 26%); filter:saturate(1.6); }
+body.tpl-neon .c2-center { top:50%; width:680px; }
+body.tpl-neon .c2-en { font-size:1.25rem; color:#6ffcff; text-shadow:0 0 18px #00f0ff; }
+body.tpl-neon .c2-zh { font-size:4.2rem; text-shadow:0 0 14px #ff4fd8,0 0 34px #00e5ff; }
+body.tpl-neon .c2-slogan-zh { color:rgba(111,252,255,0.18); }
+body.tpl-neon .c2-badge { border-color:#ff4fd8; box-shadow:0 0 20px rgba(255,79,216,0.35); }
+body.tpl-catalog .c2-bg { background:linear-gradient(180deg,#f7f3ec 0%,#d9d0bf 100%); }
+body.tpl-catalog .c2-rings { background:linear-gradient(90deg,transparent 0 48px,rgba(0,0,0,0.08) 48px 49px,transparent 49px) 0 0/160px 100%; }
+body.tpl-catalog .c2-logo-text,
+body.tpl-catalog .c2-en,
+body.tpl-catalog .c2-zh,
+body.tpl-catalog .c2-sub,
+body.tpl-catalog .c2-date,
+body.tpl-catalog .c2-slogan-en,
+body.tpl-catalog .c2-foot { color:#201915; text-shadow:none; }
+body.tpl-catalog .c2-center { top:51%; left:64px; transform:translateY(-50%); text-align:left; width:610px; }
+body.tpl-catalog .c2-zh { font-size:4.4rem; line-height:1; }
+body.tpl-catalog .c2-slogan-zh { color:rgba(32,25,21,0.1); font-size:6rem; }
+body.tpl-catalog .c2-badge { left:64px; transform:none; border-color:#201915; }
+
+#caption-panel, #info-text-panel { display: none; background: #12122a; border: 1px solid #252545; border-radius: 12px; padding: 26px 30px; }
+.cap-title { font-weight: 700; font-size: 1rem; color: #eee; margin-bottom: 10px; }
+.cap-body { font-size: 0.86rem; color: #ccc; white-space: pre-wrap; line-height: 1.9; }
+.copy-btn { margin-top: 14px; padding: 7px 18px; background: var(--purple); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-family: 'Noto Sans SC', sans-serif; }
+.copy-btn:hover { background: var(--purple-dark); }
+
+/* ══════ CARD 2: Dark Cover ══════ */
+#card2 { width:800px; height:1000px; position:relative; overflow:hidden; font-family:'Noto Sans SC',sans-serif; }
+.c2-bg { position:absolute; inset:0; background:linear-gradient(165deg,var(--ai-dark-1) 0%,var(--ai-dark-2) 42%,var(--ai-dark-3) 100%); }
+.c2-bg::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 28% 58%,rgba(110,70,200,0.28) 0%,transparent 52%), radial-gradient(ellipse at 78% 18%,rgba(70,110,200,0.18) 0%,transparent 44%); }
+.c2-rings { position:absolute; inset:0; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1000'%3E%3Cellipse cx='400' cy='500' rx='340' ry='190' fill='none' stroke='rgba(180,160,255,0.055)' stroke-width='55'/%3E%3Cellipse cx='290' cy='390' rx='240' ry='140' fill='none' stroke='rgba(160,140,240,0.045)' stroke-width='35'/%3E%3Cellipse cx='510' cy='610' rx='265' ry='115' fill='none' stroke='rgba(140,190,255,0.038)' stroke-width='28'/%3E%3C/svg%3E") no-repeat center/cover; }
+.c2-logo { position:absolute; top:34px; left:50%; transform:translateX(-50%); text-align:center; }
+.c2-logo-icon { font-size:2.2rem; color:var(--gold); display:block; }
+.c2-logo-text { font-size:0.62rem; color:rgba(200,180,255,0.5); letter-spacing:4px; margin-top:3px; font-family:'Playfair Display',serif; }
+.c2-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-52%); text-align:center; width:660px; }
+.c2-en { font-family:'Playfair Display',serif; font-size:2.4rem; color:white; letter-spacing:5px; text-transform:uppercase; margin-bottom:14px; }
+.c2-zh { font-family:'Noto Serif SC',serif; font-size:2.8rem; font-weight:900; color:white; line-height:1.2; text-shadow:0 2px 24px rgba(110,70,200,0.8); margin-bottom:6px; }
+.c2-sub { font-size:0.85rem; color:rgba(200,180,255,0.65); letter-spacing:2px; margin-bottom:24px; font-style:italic; font-family:'Playfair Display',serif; }
+.c2-date { font-size:1.3rem; color:rgba(220,205,255,0.88); letter-spacing:4px; font-weight:300; margin-bottom:36px; }
+.c2-slogan-zh { font-family:'Noto Serif SC',serif; font-size:2.2rem; font-weight:900; color:rgba(255,255,255,0.1); letter-spacing:6px; }
+.c2-slogan-en { font-size:0.68rem; color:rgba(200,180,255,0.28); letter-spacing:5px; text-transform:uppercase; margin-top:4px; font-family:'Playfair Display',serif; }
+.c2-badge { position:absolute; bottom:112px; left:50%; transform:translateX(-50%); border:1px solid rgba(200,180,255,0.38); border-radius:4px; padding:7px 26px; text-align:center; white-space:nowrap; }
+.c2-badge-zh { font-size:1rem; color:rgba(220,210,255,0.88); letter-spacing:4px; }
+.c2-badge-en { font-size:0.62rem; color:rgba(200,180,255,0.45); letter-spacing:3px; text-transform:uppercase; margin-top:2px; font-family:'Playfair Display',serif; }
+.c2-foot { position:absolute; bottom:34px; left:50%; transform:translateX(-50%); font-family:'Playfair Display',serif; font-style:italic; color:rgba(150,130,190,0.35); font-size:0.82rem; letter-spacing:2px; white-space:nowrap; }
+
+/* ══════ CARD 1: Info (light mountain) ══════ */
+#card1 { width:800px; height:1000px; position:relative; overflow:hidden; font-family:'Noto Sans SC',sans-serif; }
+.c1-bg { position:absolute; inset:0; background:linear-gradient(160deg,var(--ai-light-1) 0%,var(--ai-light-2) 34%,#ccdce8 62%,var(--ai-light-3) 100%); }
+.c1-bg::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 15% 10%,rgba(200,180,230,0.55) 0%,transparent 48%), radial-gradient(ellipse at 85% 85%,rgba(150,200,220,0.38) 0%,transparent 48%); }
+.c1-bg::after { content:''; position:absolute; bottom:0; left:0; right:0; height:300px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 300'%3E%3Cpath d='M0 300 L0 170 L80 115 L160 190 L240 75 L320 145 L400 38 L480 125 L560 85 L640 155 L720 95 L800 135 L800 300Z' fill='%23c8d0e4' opacity='0.45'/%3E%3Cpath d='M0 300 L0 215 L110 165 L210 235 L290 155 L390 195 L460 135 L550 185 L630 148 L710 175 L800 158 L800 300Z' fill='%23b5c5d5' opacity='0.35'/%3E%3C/svg%3E") no-repeat bottom/cover; }
+.c1-title-area { position:absolute; top:0; left:0; right:0; padding:42px 48px 0; }
+.c1-en { font-family:'Playfair Display',serif; font-style:italic; font-size:3.2rem; color:#4a2e7a; line-height:1.1; letter-spacing:-1px; }
+.c1-zh { font-family:'Noto Serif SC',serif; font-size:1.75rem; color:var(--purple); margin-top:4px; font-weight:700; }
+.c1-star { color:var(--purple-light); font-size:1.1rem; margin:6px 0; }
+.c1-box { position:absolute; top:198px; left:38px; right:38px; background:rgba(255,255,255,0.87); backdrop-filter:blur(8px); border-radius:14px; padding:22px 28px; border:1px solid rgba(255,255,255,0.95); box-shadow:0 8px 40px rgba(80,60,140,0.11); }
+.irow { display:flex; padding:9px 0; border-bottom:1px dashed #d4c4ec; align-items:flex-start; gap:11px; }
+.irow:last-child { border-bottom:none; padding-bottom:0; }
+.ibullet { width:9px; height:9px; border-radius:50%; background:var(--purple); flex-shrink:0; margin-top:5px; }
+.ilabel { font-size:0.82rem; font-weight:700; color:var(--purple); margin-bottom:2px; letter-spacing:0.5px; }
+.ivalue { font-size:0.84rem; color:#333; line-height:1.65; }
+.score-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:3px 16px; margin-top:3px; }
+.se { display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#444; }
+.sb-wrap { flex:1; height:4px; background:#e0d8f0; border-radius:2px; }
+.sb { height:100%; background:var(--purple); border-radius:2px; }
+.sn { font-weight:700; color:var(--purple); font-size:0.79rem; white-space:nowrap; }
+.c1-foot { position:absolute; bottom:20px; left:38px; right:38px; display:flex; justify-content:space-between; }
+.c1-brand { font-family:'Playfair Display',serif; font-style:italic; color:rgba(100,70,160,0.42); font-size:0.95rem; letter-spacing:2px; }
+
+/* ══════ CARD 3: Style Directions ══════ */
+#card3 { width:800px; height:1000px; position:relative; overflow:hidden; font-family:'Noto Sans SC',sans-serif; }
+.c3-bg { position:absolute; inset:0; background:linear-gradient(145deg,#fafcff 0%,var(--ai-light-1) 32%,var(--ai-light-2) 66%,var(--ai-light-3) 100%); }
+.c3-bg::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 90% 10%,rgba(180,150,240,0.18) 0%,transparent 40%), radial-gradient(ellipse at 10% 90%,rgba(140,200,200,0.14) 0%,transparent 40%); }
+/* decorative large letter in bg */
+.c3-deco { position:absolute; right:-20px; top:60px; font-family:'Playfair Display',serif; font-size:18rem; font-weight:700; color:rgba(123,94,167,0.04); line-height:1; pointer-events:none; }
+.c3-header { position:absolute; top:0; left:0; right:0; padding:42px 50px 0; }
+.c3-label { font-size:0.72rem; color:var(--purple-light); letter-spacing:4px; text-transform:uppercase; font-family:'Playfair Display',serif; margin-bottom:4px; }
+.c3-title { font-family:'Noto Serif SC',serif; font-size:2rem; font-weight:900; color:#1a1035; line-height:1.2; }
+.c3-title span { color:var(--purple); }
+.c3-divider { width:48px; height:3px; background:var(--purple); margin:10px 0; border-radius:2px; }
+.c3-subtitle { font-size:0.8rem; color:#999; letter-spacing:0.5px; }
+.c3-grid { position:absolute; top:188px; left:40px; right:40px; bottom:66px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.c3-style-card { background:rgba(255,255,255,0.82); border-radius:14px; padding:18px 20px; border:1px solid rgba(180,160,220,0.22); box-shadow:0 4px 20px rgba(80,60,140,0.07); display:flex; flex-direction:column; gap:6px; position:relative; overflow:hidden; }
+.c3-style-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,var(--purple),var(--purple-light)); }
+.c3-card-num { font-family:'Playfair Display',serif; font-style:italic; font-size:2.2rem; color:rgba(123,94,167,0.1); font-weight:700; line-height:1; margin-bottom:-2px; }
+.c3-card-title { font-family:'Noto Serif SC',serif; font-size:1rem; font-weight:700; color:#1a1035; }
+.c3-card-tag { display:inline-block; background:rgba(123,94,167,0.1); color:var(--purple); font-size:0.69rem; padding:2px 9px; border-radius:20px; width:fit-content; }
+.c3-card-desc { font-size:0.78rem; color:#555; line-height:1.6; }
+.c3-tip { font-size:0.75rem; color:#666; line-height:1.6; padding-left:10px; position:relative; }
+.c3-tip::before { content:'·'; position:absolute; left:2px; color:var(--purple-light); }
+.c3-foot { position:absolute; bottom:0; left:0; right:0; padding:14px 50px; display:flex; justify-content:space-between; align-items:center; }
+.c3-brand { font-family:'Playfair Display',serif; font-style:italic; color:rgba(100,70,160,0.3); font-size:0.88rem; letter-spacing:2px; }
+.c3-pg { font-size:0.7rem; color:rgba(100,70,160,0.3); letter-spacing:2px; }
+
+/* ══════ CARD 4: Awards ══════ */
+#card4 { width:800px; height:1000px; position:relative; overflow:hidden; font-family:'Noto Sans SC',sans-serif; }
+.c4-bg { position:absolute; inset:0; background:linear-gradient(150deg,var(--ai-dark-1) 0%,var(--ai-dark-3) 52%,var(--ai-dark-2) 100%); }
+.c4-bg::before { content:''; position:absolute; inset:0; background: radial-gradient(ellipse at 20% 20%,rgba(200,160,60,0.12) 0%,transparent 45%), radial-gradient(ellipse at 80% 80%,rgba(100,70,180,0.2) 0%,transparent 45%); }
+.c4-grid-lines { position:absolute; inset:0; background-image: linear-gradient(rgba(200,168,80,0.04) 1px,transparent 1px), linear-gradient(90deg,rgba(200,168,80,0.04) 1px,transparent 1px); background-size:80px 80px; }
+.c4-header { position:absolute; top:0; left:0; right:0; padding:42px 50px 0; }
+.c4-label { font-size:0.68rem; color:rgba(200,168,80,0.55); letter-spacing:5px; text-transform:uppercase; font-family:'Playfair Display',serif; margin-bottom:6px; }
+.c4-title { font-family:'Noto Serif SC',serif; font-size:2rem; font-weight:900; color:white; }
+.c4-title span { color:var(--gold); }
+.c4-divider { width:48px; height:2px; background:linear-gradient(90deg,var(--gold),transparent); margin:10px 0; }
+.c4-sub { font-size:0.8rem; color:rgba(200,180,255,0.45); letter-spacing:1px; }
+.c4-tiers { position:absolute; top:176px; left:40px; right:40px; bottom:218px; overflow:hidden; display:flex; flex-direction:column; gap:16px; }
+.c4-tier { border-radius:12px; overflow:hidden; border:1px solid rgba(200,168,80,0.15); }
+.c4-tier-header { display:flex; align-items:center; gap:14px; padding:11px 20px; }
+.c4-tier-icon { font-size:1.4rem; flex-shrink:0; }
+.c4-tier-name { font-family:'Noto Serif SC',serif; font-size:1rem; font-weight:700; }
+.c4-tier-slots { font-size:0.7rem; padding:2px 10px; border-radius:12px; margin-left:auto; white-space:nowrap; }
+.c4-tier-body { padding:8px 20px 12px; }
+.c4-prize-amount { font-size:1.12rem; font-weight:700; margin-bottom:6px; line-height:1.25; font-family:'Noto Serif SC',serif; }
+.c4-prizes { display:flex; flex-wrap:wrap; gap:5px 6px; }
+.c4-prize-tag { font-size:0.7rem; line-height:1.35; padding:3px 10px; border-radius:12px; background:rgba(255,255,255,0.07); color:rgba(220,210,255,0.7); border:1px solid rgba(255,255,255,0.1); }
+.c4-tiers.compact { gap:12px; }
+.c4-tiers.compact .c4-tier-header { padding:9px 18px; }
+.c4-tiers.compact .c4-tier-body { padding:7px 18px 10px; }
+.c4-tiers.compact .c4-prize-amount { font-size:1rem; margin-bottom:5px; }
+.c4-tiers.compact .c4-prize-tag { font-size:0.66rem; padding:2px 8px; }
+.c4-tiers.ultra-compact { gap:8px; }
+.c4-tiers.ultra-compact .c4-tier-header { padding:8px 16px; }
+.c4-tiers.ultra-compact .c4-tier-body { padding:6px 16px 8px; }
+.c4-tiers.ultra-compact .c4-prize-amount { font-size:0.92rem; }
+.c4-tiers.ultra-compact .c4-prize-tag { font-size:0.62rem; max-width:100%; }
+/* tier color variants */
+.tier-gold .c4-tier-header { background:linear-gradient(90deg,rgba(200,168,60,0.2),rgba(200,168,60,0.04)); }
+.tier-gold .c4-tier-name { color:var(--gold-light); }
+.tier-gold .c4-tier-slots { background:rgba(200,168,60,0.15); color:var(--gold); border:1px solid rgba(200,168,60,0.3); }
+.tier-gold .c4-prize-amount { color:var(--gold-light); }
+.tier-gold .c4-prize-tag { background:rgba(200,168,60,0.1); color:rgba(240,220,140,0.8); border-color:rgba(200,168,60,0.2); }
+.tier-silver .c4-tier-header { background:linear-gradient(90deg,rgba(180,180,200,0.15),rgba(180,180,200,0.03)); }
+.tier-silver .c4-tier-name { color:#c8c8e0; }
+.tier-silver .c4-tier-slots { background:rgba(180,180,200,0.12); color:#b0b0cc; border:1px solid rgba(180,180,200,0.25); }
+.tier-silver .c4-prize-amount { color:#d0d0e8; }
+.tier-bronze .c4-tier-header { background:linear-gradient(90deg,rgba(180,120,80,0.15),rgba(180,120,80,0.03)); }
+.tier-bronze .c4-tier-name { color:#d4a888; }
+.tier-bronze .c4-tier-slots { background:rgba(180,120,80,0.12); color:#c09070; border:1px solid rgba(180,120,80,0.25); }
+.tier-bronze .c4-prize-amount { color:#d4a888; }
+.tier-special .c4-tier-header { background:linear-gradient(90deg,rgba(120,80,200,0.2),rgba(120,80,200,0.04)); }
+.tier-special .c4-tier-name { color:#b89ee8; }
+.tier-special .c4-tier-slots { background:rgba(120,80,200,0.15); color:#a080d8; border:1px solid rgba(120,80,200,0.3); }
+.tier-special .c4-prize-amount { color:#c0a8f0; }
+.c4-extras-wrap { position:absolute; left:40px; right:40px; bottom:66px; max-height:122px; overflow:hidden; }
+.c4-extras-title { font-size:0.66rem; color:rgba(200,168,80,0.5); letter-spacing:3px; text-transform:uppercase; font-family:'Playfair Display',serif; margin-bottom:8px; line-height:1.3; }
+.c4-extra-items { display:flex; flex-wrap:wrap; gap:6px 7px; }
+.c4-extra-item { font-size:0.72rem; line-height:1.35; padding:4px 12px; border-radius:20px; background:rgba(120,80,200,0.12); color:rgba(200,180,255,0.75); border:1px solid rgba(120,80,200,0.25); }
+.c4-foot { position:absolute; bottom:24px; left:40px; right:40px; display:flex; justify-content:space-between; }
+.c4-brand { font-family:'Playfair Display',serif; font-style:italic; color:rgba(200,168,80,0.28); font-size:0.88rem; letter-spacing:2px; }
+.c4-pg { font-size:0.7rem; color:rgba(200,168,80,0.28); letter-spacing:2px; }
+</style>
+</head>
+<body>
+
+<h1>比赛帖子生成器</h1>
+<p class="subtitle">输入比赛信息，自动生成 4 张小红书风格帖子图片</p>
+
+<!-- AI Import Panel -->
+<div class="panel ai-panel">
+  <h2>🤖 AI 从官网链接自动提取</h2>
+  <div class="grid">
+    <div class="full"><label>比赛官网链接</label><input id="ai-url" placeholder="https://competition-official-site.com/..."></div>
+    <div><label>DeepSeek API Key</label><input id="deepseek-key" type="password" placeholder="sk-..."></div>
+    <div><label>DeepSeek 模型</label><input id="deepseek-model" value="deepseek-v4-pro"></div>
+    <div><label>DeepSeek API 地址</label><input id="deepseek-base" value="https://api.deepseek.com"></div>
+    <div><label>官网抓取方式</label><input id="reader-prefix" value="https://r.jina.ai/"></div>
+  </div>
+  <div class="ai-actions">
+    <button class="btn btn-primary" id="ai-fill-btn" onclick="fillFromOfficialSite()">🤖 读取官网并自动填表</button>
+    <button class="btn btn-secondary" onclick="copyUrlToAi()">同步下方官网链接</button>
+    <span class="ai-status" id="ai-status"></span>
+  </div>
+  <div class="ai-note">API Key 只保存在当前浏览器页面内，用于直接请求 DeepSeek。若某些官网禁止跨域读取，页面会自动使用 Reader 转 Markdown 后再解析。</div>
+</div>
+
+<!-- Panel 1 -->
+<div class="panel">
+  <h2>📋 比赛基本信息</h2>
+  <div class="grid">
+    <div><label>比赛中文名称 *</label><input id="name-zh" value="JMA 2026 珠宝设计大赛"></div>
+    <div><label>比赛英文名称</label><input id="name-en" value="JMA International Jewelry Design Competition 2026"></div>
+    <div><label>主办单位</label><input id="organizer" value="香港珠宝制造业厂商会 / 香港珠宝工坊"></div>
+    <div><label>参赛资格</label><input id="eligibility" value="全球设计师均可参与"></div>
+    <div><label>比赛主题（中文）</label><input id="theme" value="棱 · 光之棱角，梦之力量"></div>
+    <div><label>主题英文 / Slogan</label><input id="slogan" value="Facets of Light, Dreams of Power"></div>
+    <div><label>截止日期</label><input id="deadline" value="2026.06.05"></div>
+    <div><label>结果公布</label><input id="result-date" value="2026.07"></div>
+    <div><label>提交内容</label><input id="submission" value="图稿，实物"></div>
+    <div><label>官网链接（可选）</label><input id="url" placeholder="https://..."></div>
+    <div class="full"><label>主题关键词（用 | 分隔）</label><input id="keywords" value="棱角 | 棱镜 | 光 | 折射 | 散射 | 重组 | 能量 | 锋芒 | 韧性 | 转化"></div>
+  </div>
+</div>
+
+<!-- Panel 2 -->
+<div class="panel">
+  <h2>⭐ 奖项含金量评分（满分20）</h2>
+  <div class="scores">
+    <div class="score-item"><label>主办方权威性</label><div class="score-row"><input type="number" id="s1" min="0" max="20" value="14"><span>/ 20</span></div></div>
+    <div class="score-item"><label>行业认可度</label><div class="score-row"><input type="number" id="s2" min="0" max="20" value="15"><span>/ 20</span></div></div>
+    <div class="score-item"><label>作品质量要求</label><div class="score-row"><input type="number" id="s3" min="0" max="20" value="14"><span>/ 20</span></div></div>
+    <div class="score-item"><label>国际化程度</label><div class="score-row"><input type="number" id="s4" min="0" max="20" value="14"><span>/ 20</span></div></div>
+  </div>
+  <br>
+  <h2 style="margin-top:8px;">✍️ 主题解析文案</h2>
+  <div class="grid">
+    <div class="full"><label>一句话亮点（文案开头）</label><input id="hook" value="今年JMA2026的主题是「棱」。"></div>
+    <div class="full"><label>主题解析要点（每行一条）</label><textarea id="analysis">棱角 → 生命的锋芒与韧性
+光 → 折射 / 散射 / 重组
+梦 → 想象 / 力量 / 能量释放</textarea></div>
+    <div class="full"><label>核心设计逻辑</label><input id="logic" value="符号 → 结构 → 形式 → 作品"></div>
+    <div class="full"><label>附加备注（可选）</label><textarea id="extra" placeholder="报名提示、特别说明..."></textarea></div>
+  </div>
+</div>
+
+<!-- Panel 3: Style Directions -->
+<div class="panel">
+  <h2>🎨 参赛作品风格推荐（4个方向）</h2>
+  <p class="hint" style="margin-bottom:14px;color:#666;">每个方向填写：名称、标签、简介、2条技巧提示</p>
+  <div class="ai-actions" style="margin:0 0 16px;">
+    <button class="btn btn-secondary" id="ai-style-btn" onclick="generateStylesFromTheme()">🤖 按主题生成4个风格方向</button>
+    <span class="ai-status" id="style-ai-status"></span>
+  </div>
+  <div class="style-cards-grid">
+    <div class="style-card-input">
+      <label>方向01 · 名称</label><input class="sc-name" value="解构光棱">
+      <label>风格标签</label><input class="sc-tag" value="概念 · 实验性">
+      <label>一句简介</label><input class="sc-desc" value="将棱面抽离为几何语言，用断裂、错位表达折射的张力">
+      <label>技巧 1</label><input class="sc-t1" value="多面体切割造型，强调不对称与锋利感">
+      <label>技巧 2</label><input class="sc-t2" value="材质对比：哑光金属 vs 镜面宝石">
+    </div>
+    <div class="style-card-input">
+      <label>方向02 · 名称</label><input class="sc-name" value="东方棱境">
+      <label>风格标签</label><input class="sc-tag" value="文化 · 叙事性">
+      <label>一句简介</label><input class="sc-desc" value="以东方审美为底色，借「棱」重新诠释传统器物的刀锋与气韵">
+      <label>技巧 1</label><input class="sc-t1" value="引用玉器、铜器的棱线语言转化到珠宝设计">
+      <label>技巧 2</label><input class="sc-t2" value="中式图案几何化再创作，保留文化符号">
+    </div>
+    <div class="style-card-input">
+      <label>方向03 · 名称</label><input class="sc-name" value="自然棱晶">
+      <label>风格标签</label><input class="sc-tag" value="自然 · 有机感">
+      <label>一句简介</label><input class="sc-desc" value="矿石结晶、冰川裂纹，让自然中天然的棱角成为设计母题">
+      <label>技巧 1</label><input class="sc-t1" value="原矿标本切面的纹理直接转化为表面处理">
+      <label>技巧 2</label><input class="sc-t2" value="不规则晶簇形态，避免过度对称">
+    </div>
+    <div class="style-card-input">
+      <label>方向04 · 名称</label><input class="sc-name" value="光影叙事">
+      <label>风格标签</label><input class="sc-tag" value="感知 · 互动性">
+      <label>一句简介</label><input class="sc-desc" value="以棱面对光的折射为核心体验，让作品在不同光源下产生戏剧变化">
+      <label>技巧 1</label><input class="sc-t1" value="精算切割角度，使宝石转动时出现光谱散射">
+      <label>技巧 2</label><input class="sc-t2" value="半透明材料叠加，制造光线的层次与深度">
+    </div>
+  </div>
+</div>
+
+<!-- Panel 4: Awards -->
+<div class="panel">
+  <h2>🏆 奖项设置</h2>
+  <p class="hint" style="margin-bottom:14px;color:#666;">奖品用顿号或逗号分隔多项</p>
+  <div class="prize-tiers">
+    <div class="prize-tier">
+      <div><label>奖项名称</label><input class="pt-name" value="金奖"></div>
+      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥30,000"></div>
+      <div><label>附加奖品</label><input class="pt-perks" value="国际展览展出机会、专业导师点评、证书"></div>
+    </div>
+    <div class="prize-tier">
+      <div><label>奖项名称</label><input class="pt-name" value="银奖"></div>
+      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥15,000"></div>
+      <div><label>附加奖品</label><input class="pt-perks" value="作品集收录、行业媒体报道、证书"></div>
+    </div>
+    <div class="prize-tier">
+      <div><label>奖项名称</label><input class="pt-name" value="铜奖"></div>
+      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥8,000"></div>
+      <div><label>附加奖品</label><input class="pt-perks" value="优秀作品展展出、证书"></div>
+    </div>
+    <div class="prize-tier">
+      <div><label>奖项名称</label><input class="pt-name" value="最佳创意奖"></div>
+      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥5,000"></div>
+      <div><label>附加奖品</label><input class="pt-perks" value="品牌合作资源对接、证书"></div>
+    </div>
+  </div>
+  <br>
+  <div><label>额外福利（逗号分隔，显示在奖项卡底部）</label>
+  <input id="extra-benefits" value="所有入围选手获颁证书，优秀作品收录年鉴，获奖者受邀参加颁奖典礼"></div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-secondary" id="ai-visual-btn" onclick="generateVisualStyleFromTheme()">🎨 AI 生成帖子视觉风格</button>
+  <button class="btn btn-primary" onclick="generate()">✨ 生成全部图片</button>
+  <span class="ai-status" id="visual-ai-status"></span>
+</div>
+
+<!-- Output -->
+<div id="output-area">
+  <div class="output-header">
+    <h2>🖼 生成结果</h2>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('images',this)">图片预览</button>
+      <button class="tab" onclick="switchTab('caption',this)">文案</button>
+      <button class="tab" onclick="switchTab('infoText',this)">文字版信息</button>
+    </div>
+  </div>
+  <div class="dl-hint">💡 <strong>保存：</strong>使用下方按钮直接导出 PNG 图片；右键另存会保存网页，不适合发帖。</div>
+
+  <div id="images-panel">
+    <div class="image-nav">
+      <button class="img-tab active" onclick="switchImg(1,this)">封面（1/4）</button>
+      <button class="img-tab" onclick="switchImg(2,this)">信息卡（2/4）</button>
+      <button class="img-tab" onclick="switchImg(3,this)">风格推荐（3/4）</button>
+      <button class="img-tab" onclick="switchImg(4,this)">奖项详情（4/4）</button>
+    </div>
+    <div class="download-actions">
+      <button class="btn btn-secondary" onclick="downloadCurrentCard()">下载当前 PNG</button>
+      <button class="btn btn-secondary" onclick="downloadAllCards()">下载全部 PNG</button>
+      <span class="download-status" id="download-status"></span>
+    </div>
+
+    <!-- Card 2: dark cover (shown first) -->
+    <div id="wrap2" class="card-wrap show">
+      <div id="card2">
+        <div class="c2-bg"></div><div class="c2-rings"></div>
+        <div class="c2-logo"><span class="c2-logo-icon">✦</span><div class="c2-logo-text" id="c2-logo">COMPETITION</div></div>
+        <div class="c2-center">
+          <div class="c2-en" id="c2-en">THE COMPETITION</div>
+          <div class="c2-zh" id="c2-zh">比赛名称</div>
+          <div class="c2-sub" id="c2-sub">Subtitle</div>
+          <div class="c2-date" id="c2-date">—</div>
+          <div class="c2-slogan-zh" id="c2-slogan-zh">主题</div>
+          <div class="c2-slogan-en" id="c2-slogan-en">Slogan</div>
+        </div>
+        <div class="c2-badge"><div class="c2-badge-zh">比赛现正接受报名</div><div class="c2-badge-en">Competition Now Open For Application</div></div>
+        <div class="c2-foot" id="c2-foot">截止日期 / Deadline —</div>
+      </div>
+    </div>
+
+    <!-- Card 1: info -->
+    <div id="wrap1" class="card-wrap">
+      <div id="card1">
+        <div class="c1-bg"></div>
+        <div class="c1-title-area">
+          <div class="c1-en" id="c1-en">Competition</div>
+          <div class="c1-zh" id="c1-zh">比赛名称</div>
+          <div class="c1-star">✦</div>
+        </div>
+        <div class="c1-box" id="c1-box"></div>
+        <div class="c1-foot"><span class="c1-brand">TengRy</span><span class="c1-brand">TengRy</span></div>
+      </div>
+    </div>
+
+    <!-- Card 3: styles -->
+    <div id="wrap3" class="card-wrap">
+      <div id="card3">
+        <div class="c3-bg"></div>
+        <div class="c3-deco" id="c3-deco">S</div>
+        <div class="c3-header">
+          <div class="c3-label">Style Direction</div>
+          <div class="c3-title">参赛作品<span>风格推荐</span></div>
+          <div class="c3-divider"></div>
+          <div class="c3-subtitle" id="c3-sub">以下方向仅供参考，鼓励突破与自由表达</div>
+        </div>
+        <div class="c3-grid" id="c3-grid"></div>
+        <div class="c3-foot"><span class="c3-brand">TengRy</span><span class="c3-pg">3 / 4</span></div>
+      </div>
+    </div>
+
+    <!-- Card 4: awards -->
+    <div id="wrap4" class="card-wrap">
+      <div id="card4">
+        <div class="c4-bg"></div><div class="c4-grid-lines"></div>
+        <div class="c4-header">
+          <div class="c4-label">Awards &amp; Prizes</div>
+          <div class="c4-title">奖项<span>含金量</span>详解</div>
+          <div class="c4-divider"></div>
+          <div class="c4-sub" id="c4-sub">奖金 · 展览 · 资源 · 荣誉</div>
+        </div>
+        <div class="c4-tiers" id="c4-tiers"></div>
+        <div class="c4-extras-wrap" id="c4-extras-wrap">
+          <div class="c4-extras-title">All Participants · 全体参赛者</div>
+          <div class="c4-extra-items" id="c4-extras"></div>
+        </div>
+        <div class="c4-foot"><span class="c4-brand">TengRy</span><span class="c4-pg">4 / 4</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Caption -->
+  <div id="caption-panel">
+    <div class="cap-title" id="cap-title">标题</div>
+    <div class="cap-body" id="cap-body"></div>
+    <button class="copy-btn" onclick="copyCaption()">📋 复制文案</button>
+  </div>
+
+  <!-- Info Text -->
+  <div id="info-text-panel">
+    <div class="cap-title" id="info-text-title">比赛信息总结</div>
+    <div class="cap-body" id="info-text-body"></div>
+    <button class="copy-btn" onclick="copyInfoText()">📋 复制文字版信息</button>
+  </div>
+</div>
+
+<script>
+function switchTab(t, btn) {
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('images-panel').style.display = t==='images'?'block':'none';
+  document.getElementById('caption-panel').style.display = t==='caption'?'block':'none';
+  document.getElementById('info-text-panel').style.display = t==='infoText'?'block':'none';
+}
+function switchImg(n, btn) {
+  document.querySelectorAll('.img-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const viewToCard = {1:2, 2:1, 3:3, 4:4};
+  const cardId = viewToCard[n] || 2;
+  document.body.dataset.currentView = String(n);
+  document.body.dataset.currentCard = String(cardId);
+  [1,2,3,4].forEach(i=>{ document.getElementById('wrap'+i).classList.toggle('show',i===cardId); });
+}
+const g = id => document.getElementById(id).value.trim();
+
+const setVal = (id, value) => {
+  if (value === undefined || value === null || value === '') return;
+  document.getElementById(id).value = Array.isArray(value) ? value.join(' | ') : String(value).trim();
+};
+const fillVal = (id, value) => {
+  document.getElementById(id).value = Array.isArray(value) ? value.join(' | ') : String(value ?? '').trim();
+};
+const setAiStatus = (msg, type='') => {
+  const el = document.getElementById('ai-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+};
+const setStyleAiStatus = (msg, type='') => {
+  const el = document.getElementById('style-ai-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+};
+const setVisualAiStatus = (msg, type='') => {
+  const el = document.getElementById('visual-ai-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+};
+function copyUrlToAi(){
+  setVal('ai-url', g('url'));
+  setAiStatus('已同步官网链接。', 'ok');
+}
+function normalizeReaderUrl(url){
+  const prefix = g('reader-prefix') || 'https://r.jina.ai/';
+  return prefix.replace(/\/?$/, '/') + url;
+}
+async function fetchOfficialContent(url){
+  const attempts = [
+    {label:'官网原文', target:url},
+    {label:'Reader Markdown', target:normalizeReaderUrl(url)}
+  ];
+  let lastError = '';
+  for (const item of attempts) {
+    try {
+      setAiStatus(`正在读取${item.label}...`);
+      const res = await fetch(item.target, {headers:{'Accept':'text/plain,text/html,application/json'}});
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const text = await res.text();
+      const compact = text.replace(/\s{3,}/g, ' ').trim();
+      if (compact.length < 120) throw new Error('页面内容过短，可能未抓取成功');
+      return compact.slice(0, 42000);
+    } catch (err) {
+      lastError = `${item.label}: ${err.message}`;
+    }
+  }
+  throw new Error(lastError || '官网内容读取失败');
+}
+function parseJsonText(text){
+  const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
+  try { return JSON.parse(cleaned); } catch (_) {}
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (match) return JSON.parse(match[0]);
+  throw new Error('DeepSeek 返回内容不是有效 JSON');
+}
+async function callDeepSeekJson(messages, temperature=0.35){
+  const apiKey = g('deepseek-key');
+  if (!apiKey) throw new Error('请先填写 DeepSeek API Key');
+  const base = (g('deepseek-base') || 'https://api.deepseek.com').replace(/\/$/, '');
+  const model = g('deepseek-model') || 'deepseek-v4-pro';
+  const res = await fetch(`${base}/chat/completions`, {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'Authorization':`Bearer ${apiKey}`
+    },
+    body:JSON.stringify({
+      model,
+      temperature,
+      thinking:{type:'disabled'},
+      response_format:{type:'json_object'},
+      messages
+    })
+  });
+  if (!res.ok) {
+    const errText = await res.text().catch(()=>'');
+    throw new Error(`DeepSeek 请求失败：${res.status} ${res.statusText}${errText ? ' / '+errText.slice(0,220) : ''}`);
+  }
+  const data = await res.json();
+  const contentText = data?.choices?.[0]?.message?.content;
+  if (!contentText) throw new Error('DeepSeek 没有返回可解析内容');
+  return parseJsonText(contentText);
+}
+async function askDeepSeekForCompetition(content, url){
+  const prompt = `你是珠宝设计比赛信息编辑。请从官网内容中提取比赛信息，并生成适合小红书帖子的中文字段。只输出 JSON，不要解释。
+
+JSON 结构：
+{
+  "nameZh": "比赛中文名称",
+  "nameEn": "比赛英文名称",
+  "organizer": "主办单位",
+  "eligibility": "参赛资格",
+  "theme": "比赛主题中文",
+  "slogan": "主题英文或 slogan",
+  "deadline": "截止日期，保留官网日期格式",
+  "resultDate": "结果公布日期",
+  "submission": "提交内容",
+  "keywords": ["关键词1","关键词2"],
+  "scores": {"authority": 0-20, "recognition": 0-20, "quality": 0-20, "international": 0-20},
+  "hook": "一句话亮点，中文",
+  "analysis": ["主题解析要点1","主题解析要点2","主题解析要点3"],
+  "logic": "核心设计逻辑，用 箭头 串联",
+  "extra": "报名提示或特别说明",
+  "styleDirections": [
+    {"name":"方向名称","tag":"标签","desc":"一句简介","tip1":"技巧1","tip2":"技巧2"}
+  ],
+  "prizes": [
+    {"name":"奖项名称","amount":"奖金或主要奖励","perks":"附加奖品，用顿号分隔"}
+  ],
+  "extraBenefits": "额外福利，用逗号分隔"
+}
+
+要求：
+1. 没有明确写出的日期或奖金不要编造，留空字符串。
+2. styleDirections 必须给 4 个，基于比赛主题生成。
+3. prizes 最多 4 个，官网缺失时留空数组。
+4. scores 根据主办方、行业影响、门槛、国际化做保守估计。
+
+官网链接：${url}
+官网内容：
+${content}`;
+  setAiStatus('正在请求 DeepSeek 解析比赛信息...');
+  return callDeepSeekJson([
+    {role:'system', content:'你擅长从比赛官网中抽取结构化信息，并为珠宝设计比赛生成准确、克制、可发布的中文帖子资料。'},
+    {role:'user', content:prompt}
+  ]);
+}
+function applyStyleDirections(styleDirections){
+  const styleEls = document.querySelectorAll('.style-card-input');
+  (styleDirections || []).slice(0,4).forEach((item, i)=>{
+    const el = styleEls[i];
+    if (!el) return;
+    const fields = ['name','tag','desc','tip1','tip2'];
+    const classes = ['.sc-name','.sc-tag','.sc-desc','.sc-t1','.sc-t2'];
+    fields.forEach((field, idx)=>{
+      el.querySelector(classes[idx]).value = item[field] ? String(item[field]).trim() : '';
+    });
+  });
+}
+async function askDeepSeekForStyles(){
+  const theme = g('theme');
+  const slogan = g('slogan');
+  const keywords = g('keywords');
+  const nameZh = g('name-zh');
+  if (!theme && !keywords) throw new Error('请先填写比赛主题或关键词');
+  const prompt = `请根据珠宝设计比赛主题，生成 4 个差异明显的参赛作品风格方向。只输出 JSON，不要解释。
+
+比赛名称：${nameZh || '未填写'}
+主题：${theme || '未填写'}
+英文主题 / Slogan：${slogan || '未填写'}
+关键词：${keywords || '未填写'}
+
+JSON 结构：
+{
+  "styleDirections": [
+    {"name":"2-6字中文方向名","tag":"两个标签，用 · 分隔","desc":"一句简介，28字以内","tip1":"具体设计技巧，28字以内","tip2":"具体材料/工艺/表现建议，28字以内"}
+  ]
+}
+
+要求：
+1. 必须生成 4 个方向。
+2. 四个方向要分别覆盖：先锋实验、文化叙事、自然/材料、商业佩戴或互动体验。
+3. 不要四个都围绕同一种视觉语言，名称、标签、技巧要明显不同。
+4. 适合珠宝设计参赛，不写空泛鸡汤。`;
+  setStyleAiStatus('正在按主题生成风格方向...');
+  const data = await callDeepSeekJson([
+    {role:'system', content:'你是珠宝设计竞赛导师，擅长把抽象主题拆成多种可执行的作品风格方向。'},
+    {role:'user', content:prompt}
+  ], 0.7);
+  if (!Array.isArray(data.styleDirections) || data.styleDirections.length < 4) {
+    throw new Error('DeepSeek 返回的风格方向不足 4 个，请再试一次');
+  }
+  return data.styleDirections;
+}
+const safeHex = value => /^#[0-9a-fA-F]{6}$/.test(String(value || '').trim()) ? String(value).trim() : '';
+const visualTemplates = ['crystal','cyber','ink','botanical','atelier','poster','split','blueprint','brutal','luxe','neon','catalog'];
+function applyVisualStyle(visualStyle){
+  const defaults = {
+    primary:'#7B5EA7', primaryLight:'#9B7BC7', primaryDark:'#5A3E85',
+    accent:'#c9a84c', accentLight:'#e8cc88',
+    dark1:'#160d2e', dark2:'#241450', dark3:'#0c1635',
+    light1:'#ece8f4', light2:'#d8d0ec', light3:'#bcd8cc'
+  };
+  const v = {...defaults, ...(visualStyle || {})};
+  const root = document.documentElement.style;
+  const pairs = [
+    ['--purple', v.primary, defaults.primary], ['--purple-light', v.primaryLight, defaults.primaryLight], ['--purple-dark', v.primaryDark, defaults.primaryDark],
+    ['--gold', v.accent, defaults.accent], ['--gold-light', v.accentLight, defaults.accentLight],
+    ['--ai-dark-1', v.dark1, defaults.dark1], ['--ai-dark-2', v.dark2, defaults.dark2], ['--ai-dark-3', v.dark3, defaults.dark3],
+    ['--ai-light-1', v.light1, defaults.light1], ['--ai-light-2', v.light2, defaults.light2], ['--ai-light-3', v.light3, defaults.light3]
+  ];
+  pairs.forEach(([key, value, fallback]) => root.setProperty(key, safeHex(value) || fallback));
+  document.body.classList.remove(
+    'visual-editorial','visual-future','visual-organic','visual-gallery',
+    'tpl-crystal','tpl-cyber','tpl-ink','tpl-botanical','tpl-atelier','tpl-poster',
+    'tpl-split','tpl-blueprint','tpl-brutal','tpl-luxe','tpl-neon','tpl-catalog'
+  );
+  const layout = ['editorial','future','organic','gallery'].includes(visualStyle?.layout) ? visualStyle.layout : 'gallery';
+  document.body.classList.add('visual-' + layout);
+  const template = visualTemplates.includes(visualStyle?.template) ? visualStyle.template : 'crystal';
+  document.body.classList.add('tpl-' + template);
+  document.body.dataset.visualTemplate = template;
+  if (visualStyle?.name) {
+    document.body.dataset.visualName = String(visualStyle.name).slice(0,24).toUpperCase();
+  }
+}
+async function askDeepSeekForVisualStyle(){
+  const nameZh = g('name-zh');
+  const theme = g('theme');
+  const slogan = g('slogan');
+  const keywords = g('keywords');
+  const styleNames = Array.from(document.querySelectorAll('.sc-name')).map(el=>el.value.trim()).filter(Boolean).join(' / ');
+  const currentTemplate = document.body.dataset.visualTemplate || 'none';
+  const refreshSeed = Date.now().toString(36).slice(-6);
+  if (!theme && !keywords && !nameZh) throw new Error('请先填写比赛名称、主题或关键词');
+  const prompt = `请为一组小红书珠宝设计比赛帖子生成视觉主题。只输出 JSON，不要解释。
+
+比赛名称：${nameZh || '未填写'}
+主题：${theme || '未填写'}
+英文主题 / Slogan：${slogan || '未填写'}
+关键词：${keywords || '未填写'}
+当前风格方向：${styleNames || '未填写'}
+当前封面模板：${currentTemplate}
+刷新编号：${refreshSeed}
+
+JSON 结构：
+{
+  "visualStyle": {
+    "name": "2-5个英文或拼音风格名",
+    "primary": "#RRGGBB",
+    "primaryLight": "#RRGGBB",
+    "primaryDark": "#RRGGBB",
+    "accent": "#RRGGBB",
+    "accentLight": "#RRGGBB",
+    "dark1": "#RRGGBB",
+    "dark2": "#RRGGBB",
+    "dark3": "#RRGGBB",
+    "light1": "#RRGGBB",
+    "light2": "#RRGGBB",
+    "light3": "#RRGGBB",
+    "layout": "editorial | future | organic | gallery",
+    "template": "crystal | cyber | ink | botanical | atelier | poster | split | blueprint | brutal | luxe | neon | catalog"
+  }
+}
+
+要求：
+1. 只返回 6 位 HEX 色值，不要 rgba/hsl/渐变。
+2. dark1/2/3 用于封面和奖项页，必须足够深，便于白字阅读。
+3. light1/2/3 用于信息页和风格页，必须足够浅，便于深色文字阅读。
+4. primary 与 accent 要明显区分，不要全部紫色或全部金色。
+5. 根据主题生成气质，例如未来感、自然矿物、东方工艺、海洋、火焰、冰晶等。
+6. layout 只能从 editorial、future、organic、gallery 中选一个。
+7. template 必须从 crystal、cyber、ink、botanical、atelier、poster、split、blueprint、brutal、luxe、neon、catalog 中选一个；本次必须尽量避开“当前封面模板”，让封面视觉明显换一版。`;
+  setVisualAiStatus('正在生成帖子视觉风格...');
+  const data = await callDeepSeekJson([
+    {role:'system', content:'你是高级平面设计师，擅长为珠宝、艺术、设计竞赛生成高级且可读性稳定的社媒视觉配色系统。'},
+    {role:'user', content:prompt}
+  ], 0.85);
+  if (!data.visualStyle) throw new Error('DeepSeek 没有返回 visualStyle');
+  return data.visualStyle;
+}
+function applyCompetitionData(data, url){
+  fillVal('name-zh', data.nameZh);
+  fillVal('name-en', data.nameEn);
+  fillVal('organizer', data.organizer);
+  fillVal('eligibility', data.eligibility);
+  fillVal('theme', data.theme);
+  fillVal('slogan', data.slogan);
+  fillVal('deadline', data.deadline);
+  fillVal('result-date', data.resultDate);
+  fillVal('submission', data.submission);
+  fillVal('url', url);
+  fillVal('keywords', Array.isArray(data.keywords) ? data.keywords : data.keywords);
+  fillVal('hook', data.hook);
+  fillVal('analysis', Array.isArray(data.analysis) ? data.analysis.join('\n') : data.analysis);
+  fillVal('logic', data.logic);
+  fillVal('extra', data.extra);
+  fillVal('extra-benefits', data.extraBenefits);
+  const scores = data.scores || {};
+  const score = value => Number.isFinite(Number(value)) ? Math.max(0, Math.min(20, Number(value))) : 14;
+  fillVal('s1', score(scores.authority ?? scores.s1));
+  fillVal('s2', score(scores.recognition ?? scores.s2));
+  fillVal('s3', score(scores.quality ?? scores.s3));
+  fillVal('s4', score(scores.international ?? scores.s4));
+
+  applyStyleDirections(data.styleDirections);
+  const prizeEls = document.querySelectorAll('.prize-tier');
+  prizeEls.forEach(el=>{
+    el.querySelector('.pt-name').value = '';
+    el.querySelector('.pt-amount').value = '';
+    el.querySelector('.pt-perks').value = '';
+  });
+  (data.prizes || []).slice(0,4).forEach((item, i)=>{
+    const el = prizeEls[i];
+    if (!el) return;
+    if (item.name) el.querySelector('.pt-name').value = item.name;
+    if (item.amount) el.querySelector('.pt-amount').value = item.amount;
+    if (item.perks) el.querySelector('.pt-perks').value = item.perks;
+  });
+}
+async function fillFromOfficialSite(){
+  const btn = document.getElementById('ai-fill-btn');
+  const url = g('ai-url') || g('url');
+  if (!url) {
+    setAiStatus('请先填写比赛官网链接。', 'err');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '读取中...';
+  try {
+    const content = await fetchOfficialContent(url);
+    const data = await askDeepSeekForCompetition(content, url);
+    applyCompetitionData(data, url);
+    generate();
+    setAiStatus('已自动填表并生成帖子。请人工核对日期、奖金和参赛资格。', 'ok');
+  } catch (err) {
+    setAiStatus(err.message || 'AI 提取失败', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 读取官网并自动填表';
+  }
+}
+async function generateStylesFromTheme(){
+  const btn = document.getElementById('ai-style-btn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+  try {
+    const styleDirections = await askDeepSeekForStyles();
+    applyStyleDirections(styleDirections);
+    generate();
+    switchImg(3, document.querySelectorAll('.img-tab')[2]);
+    setStyleAiStatus('已生成 4 个差异化风格方向。', 'ok');
+  } catch (err) {
+    setStyleAiStatus(err.message || '风格生成失败', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 按主题生成4个风格方向';
+  }
+}
+async function generateVisualStyleFromTheme(){
+  const btn = document.getElementById('ai-visual-btn');
+  btn.disabled = true;
+  btn.textContent = '生成中...';
+  try {
+    const beforeTemplate = document.body.dataset.visualTemplate || '';
+    const visualStyle = await askDeepSeekForVisualStyle();
+    const pickedTemplate = visualTemplates.includes(visualStyle.template) ? visualStyle.template : '';
+    if (!pickedTemplate || pickedTemplate === beforeTemplate) {
+      const currentIndex = Number(document.body.dataset.visualTemplateIndex || -1);
+      const nextIndex = (currentIndex + 1) % visualTemplates.length;
+      visualStyle.template = visualTemplates[nextIndex];
+      document.body.dataset.visualTemplateIndex = String(nextIndex);
+    } else {
+      document.body.dataset.visualTemplateIndex = String(visualTemplates.indexOf(pickedTemplate));
+    }
+    applyVisualStyle(visualStyle);
+    generate();
+    switchImg(1, document.querySelector('.img-tab'));
+    setVisualAiStatus(`已刷新封面模板：${visualStyle.template}${visualStyle.name ? ' / '+visualStyle.name : ''}`, 'ok');
+  } catch (err) {
+    setVisualAiStatus(err.message || '视觉风格生成失败', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🎨 AI 生成帖子视觉风格';
+  }
+}
+
+function generate(){
+  const nameZh = g('name-zh')||'比赛名称';
+  const nameEn = g('name-en')||'Competition Name';
+  const organizer = g('organizer');
+  const eligibility = g('eligibility');
+  const theme = g('theme');
+  const slogan = g('slogan');
+  const deadline = g('deadline');
+  const resultDate = g('result-date');
+  const submission = g('submission');
+  const keywords = g('keywords');
+  const url = g('url');
+  const hook = g('hook');
+  const analysis = g('analysis');
+  const logic = g('logic');
+  const extra = g('extra');
+  const extraBenefits = g('extra-benefits');
+  const s1=+document.getElementById('s1').value||14;
+  const s2=+document.getElementById('s2').value||14;
+  const s3=+document.getElementById('s3').value||14;
+  const s4=+document.getElementById('s4').value||14;
+
+  const themeShort = theme.split('·').pop()?.trim()||theme;
+  const themeCore = themeShort.split(/[，,。]|[··]/)[0].replace(/[\s「」]/g,'').slice(0,4);
+
+  /* ── Card 2 ── */
+  document.getElementById('c2-logo').textContent = document.body.dataset.visualName || ('COMPETITION · '+new Date().getFullYear());
+  document.getElementById('c2-en').textContent = nameEn.length>34?nameEn.slice(0,32)+'…':nameEn;
+  document.getElementById('c2-zh').textContent = nameZh;
+  document.getElementById('c2-sub').textContent = nameEn;
+  document.getElementById('c2-date').textContent = deadline||'报名进行中';
+  document.getElementById('c2-slogan-zh').textContent = themeShort;
+  document.getElementById('c2-slogan-en').textContent = slogan;
+  document.getElementById('c2-foot').textContent = '截止日期 / Deadline — '+(deadline||'TBD');
+
+  /* ── Card 1 ── */
+  document.getElementById('c1-en').textContent = nameEn.split(' ').slice(0,3).join(' ');
+  document.getElementById('c1-zh').textContent = nameZh;
+  const rows=[
+    {l:'比赛名称',v:nameZh},
+    organizer&&{l:'主办单位',v:organizer},
+    eligibility&&{l:'参赛资格',v:eligibility},
+    (keywords||theme)&&{l:'主题关键词',v:keywords||theme},
+    {l:'比赛时间',v:(deadline?deadline+' 截止':'')+(resultDate?'\n'+resultDate+' 公布结果':'')},
+    submission&&{l:'提交内容',v:submission},
+    {l:'奖项含金量',v:'SCORE',sc:[{n:'主办方权威性',v:s1},{n:'行业认可度',v:s2},{n:'作品质量',v:s3},{n:'国际化程度',v:s4}]},
+  ].filter(Boolean);
+  document.getElementById('c1-box').innerHTML = rows.map(r=>{
+    if(r.v==='SCORE') return `<div class="irow"><div class="ibullet"></div><div><div class="ilabel">${r.l}</div><div class="score-grid2">${r.sc.map(s=>`<div class="se"><span>${s.n}</span><div class="sb-wrap"><div class="sb" style="width:${s.v/20*100}%"></div></div><span class="sn">${s.v}/20</span></div>`).join('')}</div></div></div>`;
+    return `<div class="irow"><div class="ibullet"></div><div><div class="ilabel">${r.l}</div><div class="ivalue">${r.v.replace(/\n/g,'<br>')}</div></div></div>`;
+  }).join('');
+
+  /* ── Card 3 ── */
+  document.getElementById('c3-deco').textContent = themeCore.charAt(0)||'S';
+  document.getElementById('c3-sub').textContent = `「${themeCore}」的四种表达方向，仅供参考，鼓励突破`;
+  const scInps = document.querySelectorAll('.style-card-input');
+  const nums=['01','02','03','04'];
+  document.getElementById('c3-grid').innerHTML = Array.from(scInps).map((inp,i)=>{
+    const name = inp.querySelector('.sc-name').value.trim()||`方向 ${i+1}`;
+    const tag  = inp.querySelector('.sc-tag').value.trim();
+    const desc = inp.querySelector('.sc-desc').value.trim();
+    const t1   = inp.querySelector('.sc-t1').value.trim();
+    const t2   = inp.querySelector('.sc-t2').value.trim();
+    return `<div class="c3-style-card">
+      <div class="c3-card-num">${nums[i]}</div>
+      <div class="c3-card-title">${name}</div>
+      ${tag?`<div class="c3-card-tag">${tag}</div>`:''}
+      <div class="c3-card-desc">${desc}</div>
+      ${t1?`<div class="c3-tip">${t1}</div>`:''}
+      ${t2?`<div class="c3-tip">${t2}</div>`:''}
+    </div>`;
+  }).join('');
+
+  /* ── Card 4 ── */
+  document.getElementById('c4-sub').textContent = `${nameZh} · 奖项设置一览`;
+  const tierEls = document.querySelectorAll('.prize-tier');
+  const tierColors=['tier-gold','tier-silver','tier-bronze','tier-special'];
+  const tierIcons=['🥇','🥈','🥉','✦'];
+  let tiersHTML='';
+  tierEls.forEach((t,i)=>{
+    const name=t.querySelector('.pt-name').value.trim();
+    const amount=t.querySelector('.pt-amount').value.trim();
+    const perks=t.querySelector('.pt-perks').value.trim();
+    if(!name) return;
+    const perkTags=perks?perks.split(/[、，,]/).map(p=>`<span class="c4-prize-tag">${p.trim()}</span>`).join(''):'';
+    tiersHTML+=`<div class="c4-tier ${tierColors[i]||'tier-special'}">
+      <div class="c4-tier-header"><span class="c4-tier-icon">${tierIcons[i]||'✦'}</span><span class="c4-tier-name">${name}</span></div>
+      <div class="c4-tier-body"><div class="c4-prize-amount">${amount}</div>${perkTags?`<div class="c4-prizes">${perkTags}</div>`:''}</div>
+    </div>`;
+  });
+  const tiersBox=document.getElementById('c4-tiers');
+  tiersBox.classList.remove('compact','ultra-compact');
+  tiersBox.style.bottom = extraBenefits ? '218px' : '76px';
+  tiersBox.innerHTML=tiersHTML;
+  const ew=document.getElementById('c4-extras-wrap');
+  if(extraBenefits){
+    document.getElementById('c4-extras').innerHTML=extraBenefits.split(/[，,]/).map(b=>`<span class="c4-extra-item">${b.trim()}</span>`).join('');
+    ew.style.display='block';
+  } else { ew.style.display='none'; }
+  if (tiersBox.scrollHeight > tiersBox.clientHeight) tiersBox.classList.add('compact');
+  if (tiersBox.scrollHeight > tiersBox.clientHeight) tiersBox.classList.add('ultra-compact');
+
+  /* ── Caption ── */
+  const compShort=nameZh.replace(/\s/g,'');
+  document.getElementById('cap-title').textContent=`${compShort}｜主题解析`;
+  const aLines=analysis?analysis.split('\n').filter(l=>l.trim()).map(l=>'* '+l.trim()).join('\n'):'';
+  const prizeLines=Array.from(tierEls).map(t=>{
+    const n=t.querySelector('.pt-name').value.trim();
+    const a=t.querySelector('.pt-amount').value.trim();
+    const p=t.querySelector('.pt-perks').value.trim();
+    return n?`* ${n}：${a}${p?' / '+p:''}`:null;
+  }).filter(Boolean).join('\n');
+  const styleLines=Array.from(document.querySelectorAll('.sc-name')).map((el,i)=>{
+    const tag=document.querySelectorAll('.sc-tag')[i].value.trim();
+    return `* 方向${i+1}「${el.value.trim()}」${tag?'— '+tag:''}`;
+  }).join('\n');
+
+  document.getElementById('cap-body').textContent=
+`${hook}
+很多人第一反应是：
+👉 做表层形态
+但这只是表层表达。
+真正能拉开差距的，是：
+👉 把"${themeCore}"转译为设计语言。
+
+一、主题本质
+「${themeShort}」不仅是形态，更是隐喻：
+${aLines}
+👉 核心逻辑：
+${logic||'符号 → 结构 → 形式 → 作品'}
+
+二、风格方向参考（4选1，也可融合）
+${styleLines}
+
+三、奖项一览
+${prizeLines}${extraBenefits?'\n\n👉 '+extraBenefits:''}
+
+四、基本信息
+* 主办：${organizer||'见官网'}
+* 截止：${deadline||'TBD'}${resultDate?'\n* 结果公布：'+resultDate:''}
+* 提交：${submission||'见官网'}${url?'\n\n🔗 官网：'+url:''}${extra?'\n\n'+extra:''}
+
+如果想参加，建议提前研究主题、明确风格方向再动笔～
+#设计比赛 #珠宝设计 #设计师 #比赛攻略`;
+
+  document.getElementById('info-text-title').textContent=`${compShort}｜比赛信息总结`;
+  const keywordText = keywords ? keywords.split(/[|｜，,、]/).map(k=>k.trim()).filter(Boolean).join(' / ') : '';
+  const scoreText = `主办方权威性 ${s1}/20｜行业认可度 ${s2}/20｜作品质量要求 ${s3}/20｜国际化程度 ${s4}/20`;
+  document.getElementById('info-text-body').textContent=
+`【比赛名称】
+${nameZh}${nameEn?'\n'+nameEn:''}
+
+【主办单位】
+${organizer||'见官网'}
+
+【参赛资格】
+${eligibility||'见官网'}
+
+【比赛主题】
+${theme||'见官网'}${slogan?'\n'+slogan:''}
+
+【主题关键词】
+${keywordText||themeShort||'见官网'}
+
+【重要时间】
+报名截止：${deadline||'TBD'}${resultDate?'\n结果公布：'+resultDate:''}
+
+【提交内容】
+${submission||'见官网'}
+
+【奖项设置】
+${prizeLines||'见官网'}${extraBenefits?'\n'+extraBenefits:''}
+
+【推荐创作方向】
+${styleLines||'可根据主题自由延展'}
+
+【含金量参考】
+${scoreText}
+
+【官网链接】
+${url||'见官网'}
+
+【备注】
+${extra||'建议以官网最终信息为准，提交前核对报名截止时间、作品规格、版权要求与提交方式。'}`;
+
+  const out=document.getElementById('output-area');
+  out.style.display='block';
+  document.getElementById('images-panel').style.display='block';
+  document.getElementById('caption-panel').style.display='none';
+  document.getElementById('info-text-panel').style.display='none';
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  document.querySelectorAll('.tab')[1].classList.remove('active');
+  document.querySelectorAll('.tab')[2].classList.remove('active');
+  switchImg(1, document.querySelector('.img-tab'));
+  out.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function copyCaption(){
+  const t=document.getElementById('cap-title').textContent;
+  const b=document.getElementById('cap-body').textContent;
+  navigator.clipboard.writeText(t+'\n\n'+b).then(()=>{
+    const btn=document.querySelector('.copy-btn');
+    btn.textContent='✅ 已复制！';
+    setTimeout(()=>btn.textContent='📋 复制文案',2000);
+  });
+}
+function copyInfoText(){
+  const t=document.getElementById('info-text-title').textContent;
+  const b=document.getElementById('info-text-body').textContent;
+  navigator.clipboard.writeText(t+'\n\n'+b).then(()=>{
+    const btn=document.querySelector('#info-text-panel .copy-btn');
+    btn.textContent='✅ 已复制！';
+    setTimeout(()=>btn.textContent='📋 复制文字版信息',2000);
+  });
+}
+const cardFileNames = {
+  1:'02-info-card',
+  2:'01-cover',
+  3:'03-style-directions',
+  4:'04-awards'
+};
+const cardToView = {2:1, 1:2, 3:3, 4:4};
+function setDownloadStatus(msg){
+  const el=document.getElementById('download-status');
+  if(el) el.textContent=msg;
+}
+function safeFilePart(text){
+  return String(text || 'competition').replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'-').slice(0,32) || 'competition';
+}
+async function renderCardToCanvas(cardId){
+  if (!window.html2canvas) throw new Error('图片导出组件加载失败，请检查网络后刷新页面');
+  const card=document.getElementById('card'+cardId);
+  if (!card) throw new Error('未找到要导出的卡片');
+  await document.fonts?.ready?.catch(()=>{});
+  return html2canvas(card, {
+    backgroundColor:null,
+    scale:2,
+    useCORS:true,
+    allowTaint:true,
+    width:800,
+    height:1000,
+    windowWidth:1200,
+    windowHeight:1400
+  });
+}
+function saveCanvas(canvas, filename){
+  const link=document.createElement('a');
+  link.download=filename;
+  link.href=canvas.toDataURL('image/png');
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+async function downloadCard(cardId){
+  const currentView=Number(document.body.dataset.currentView || 1);
+  const targetView=cardToView[cardId] || 1;
+  const currentBtn=document.querySelectorAll('.img-tab')[targetView-1];
+  switchImg(targetView, currentBtn);
+  setDownloadStatus(`正在导出第 ${cardId} 张...`);
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const canvas=await renderCardToCanvas(cardId);
+  const prefix=safeFilePart(g('name-zh'));
+  saveCanvas(canvas, `${prefix}-${cardFileNames[cardId] || 'card'}.png`);
+  if (currentView !== targetView) switchImg(currentView, document.querySelectorAll('.img-tab')[currentView-1]);
+  setDownloadStatus(`已导出第 ${cardId} 张 PNG`);
+}
+async function downloadCurrentCard(){
+  try {
+    await downloadCard(Number(document.body.dataset.currentCard || 1));
+  } catch (err) {
+    setDownloadStatus(err.message || '导出失败');
+  }
+}
+async function downloadAllCards(){
+  const currentView=Number(document.body.dataset.currentView || 1);
+  try {
+    for (const id of [2,1,3,4]) await downloadCard(id);
+    switchImg(currentView, document.querySelectorAll('.img-tab')[currentView-1]);
+    setDownloadStatus('4 张 PNG 已全部导出');
+  } catch (err) {
+    setDownloadStatus(err.message || '导出失败');
+  }
+}
+
+window.onload=()=>generate();
+</script>
+</body>
+</html>
