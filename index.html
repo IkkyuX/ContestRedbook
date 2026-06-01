@@ -31,6 +31,37 @@ body {
   align-items: center;
   padding: 40px 20px 80px;
 }
+.topbar {
+  width: 100%;
+  max-width: 880px;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+.lang-switch {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(18,18,42,0.92);
+  border: 1px solid #252545;
+  border-radius: 999px;
+}
+.lang-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #8e86aa;
+  font-size: 0.78rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: all 0.2s;
+}
+.lang-btn.active {
+  background: var(--purple);
+  color: #fff;
+  border-color: var(--purple);
+}
 h1 {
   font-family: 'Noto Serif SC', serif;
   font-size: 1.6rem;
@@ -422,165 +453,172 @@ body.tpl-catalog .c2-badge { left:64px; transform:none; border-color:#201915; }
 </head>
 <body>
 
-<h1>比赛帖子生成器</h1>
-<p class="subtitle">输入比赛信息，自动生成 4 张小红书风格帖子图片</p>
+<div class="topbar">
+  <div class="lang-switch">
+    <button class="lang-btn active" id="lang-zh" onclick="setLanguage('zh')">中文</button>
+    <button class="lang-btn" id="lang-ko" onclick="setLanguage('ko')">한국어</button>
+  </div>
+</div>
+
+<h1 id="app-title">比赛帖子生成器</h1>
+<p class="subtitle" id="app-subtitle">输入比赛信息，自动生成 4 张小红书风格帖子图片</p>
 
 <!-- AI Import Panel -->
 <div class="panel ai-panel">
-  <h2>🤖 AI 从官网链接自动提取</h2>
+  <h2 id="ai-panel-title">🤖 AI 从官网链接自动提取</h2>
   <div class="grid">
-    <div class="full"><label>比赛官网链接</label><input id="ai-url" placeholder="https://competition-official-site.com/..."></div>
-    <div><label>DeepSeek API Key</label><input id="deepseek-key" type="password" placeholder="sk-..."></div>
-    <div><label>DeepSeek 模型</label><input id="deepseek-model" value="deepseek-v4-pro"></div>
-    <div><label>DeepSeek API 地址</label><input id="deepseek-base" value="https://api.deepseek.com"></div>
-    <div><label>官网抓取方式</label><input id="reader-prefix" value="https://r.jina.ai/"></div>
+    <div class="full"><label id="label-ai-url">比赛官网链接</label><input id="ai-url" placeholder="https://competition-official-site.com/..."></div>
+    <div><label id="label-deepseek-key">DeepSeek API Key</label><input id="deepseek-key" type="password" placeholder="sk-..."></div>
+    <div><label id="label-deepseek-model">DeepSeek 模型</label><input id="deepseek-model" value="deepseek-v4-pro"></div>
+    <div><label id="label-deepseek-base">DeepSeek API 地址</label><input id="deepseek-base" value="https://api.deepseek.com"></div>
+    <div><label id="label-reader-prefix">官网抓取方式</label><input id="reader-prefix" value="https://r.jina.ai/"></div>
   </div>
   <div class="ai-actions">
     <button class="btn btn-primary" id="ai-fill-btn" onclick="fillFromOfficialSite()">🤖 读取官网并自动填表</button>
-    <button class="btn btn-secondary" onclick="copyUrlToAi()">同步下方官网链接</button>
+    <button class="btn btn-secondary" id="copy-url-btn" onclick="copyUrlToAi()">同步下方官网链接</button>
     <span class="ai-status" id="ai-status"></span>
   </div>
-  <div class="ai-note">API Key 只保存在当前浏览器页面内，用于直接请求 DeepSeek。若某些官网禁止跨域读取，页面会自动使用 Reader 转 Markdown 后再解析。</div>
+  <div class="ai-note" id="ai-note">API Key 只保存在当前浏览器页面内，用于直接请求 DeepSeek。若某些官网禁止跨域读取，页面会自动使用 Reader 转 Markdown 后再解析。</div>
 </div>
 
 <!-- Panel 1 -->
 <div class="panel">
-  <h2>📋 比赛基本信息</h2>
+  <h2 id="basic-panel-title">📋 比赛基本信息</h2>
   <div class="grid">
-    <div><label>比赛中文名称 *</label><input id="name-zh" value="JMA 2026 珠宝设计大赛"></div>
-    <div><label>比赛英文名称</label><input id="name-en" value="JMA International Jewelry Design Competition 2026"></div>
-    <div><label>主办单位</label><input id="organizer" value="香港珠宝制造业厂商会 / 香港珠宝工坊"></div>
-    <div><label>参赛资格</label><input id="eligibility" value="全球设计师均可参与"></div>
-    <div><label>比赛主题（中文）</label><input id="theme" value="棱 · 光之棱角，梦之力量"></div>
-    <div><label>主题英文 / Slogan</label><input id="slogan" value="Facets of Light, Dreams of Power"></div>
-    <div><label>截止日期</label><input id="deadline" value="2026.06.05"></div>
-    <div><label>结果公布</label><input id="result-date" value="2026.07"></div>
-    <div><label>提交内容</label><input id="submission" value="图稿，实物"></div>
-    <div><label>官网链接（可选）</label><input id="url" placeholder="https://..."></div>
-    <div class="full"><label>主题关键词（用 | 分隔）</label><input id="keywords" value="棱角 | 棱镜 | 光 | 折射 | 散射 | 重组 | 能量 | 锋芒 | 韧性 | 转化"></div>
+    <div><label id="label-name-zh">比赛中文名称 *</label><input id="name-zh" value="JMA 2026 珠宝设计大赛"></div>
+    <div><label id="label-name-en">比赛英文名称</label><input id="name-en" value="JMA International Jewelry Design Competition 2026"></div>
+    <div><label id="label-organizer">主办单位</label><input id="organizer" value="香港珠宝制造业厂商会 / 香港珠宝工坊"></div>
+    <div><label id="label-eligibility">参赛资格</label><input id="eligibility" value="全球设计师均可参与"></div>
+    <div><label id="label-theme">比赛主题（中文）</label><input id="theme" value="棱 · 光之棱角，梦之力量"></div>
+    <div><label id="label-slogan">主题英文 / Slogan</label><input id="slogan" value="Facets of Light, Dreams of Power"></div>
+    <div><label id="label-deadline">截止日期</label><input id="deadline" value="2026.06.05"></div>
+    <div><label id="label-result-date">结果公布</label><input id="result-date" value="2026.07"></div>
+    <div><label id="label-submission">提交内容</label><input id="submission" value="图稿，实物"></div>
+    <div><label id="label-url">官网链接（可选）</label><input id="url" placeholder="https://..."></div>
+    <div class="full"><label id="label-keywords">主题关键词（用 | 分隔）</label><input id="keywords" value="棱角 | 棱镜 | 光 | 折射 | 散射 | 重组 | 能量 | 锋芒 | 韧性 | 转化"></div>
   </div>
 </div>
 
 <!-- Panel 2 -->
 <div class="panel">
-  <h2>⭐ 奖项含金量评分（满分20）</h2>
+  <h2 id="score-panel-title">⭐ 奖项含金量评分（满分20）</h2>
   <div class="scores">
-    <div class="score-item"><label>主办方权威性</label><div class="score-row"><input type="number" id="s1" min="0" max="20" value="14"><span>/ 20</span></div></div>
-    <div class="score-item"><label>行业认可度</label><div class="score-row"><input type="number" id="s2" min="0" max="20" value="15"><span>/ 20</span></div></div>
-    <div class="score-item"><label>作品质量要求</label><div class="score-row"><input type="number" id="s3" min="0" max="20" value="14"><span>/ 20</span></div></div>
-    <div class="score-item"><label>国际化程度</label><div class="score-row"><input type="number" id="s4" min="0" max="20" value="14"><span>/ 20</span></div></div>
+    <div class="score-item"><label id="label-s1">主办方权威性</label><div class="score-row"><input type="number" id="s1" min="0" max="20" value="14"><span>/ 20</span></div></div>
+    <div class="score-item"><label id="label-s2">行业认可度</label><div class="score-row"><input type="number" id="s2" min="0" max="20" value="15"><span>/ 20</span></div></div>
+    <div class="score-item"><label id="label-s3">作品质量要求</label><div class="score-row"><input type="number" id="s3" min="0" max="20" value="14"><span>/ 20</span></div></div>
+    <div class="score-item"><label id="label-s4">国际化程度</label><div class="score-row"><input type="number" id="s4" min="0" max="20" value="14"><span>/ 20</span></div></div>
   </div>
   <br>
-  <h2 style="margin-top:8px;">✍️ 主题解析文案</h2>
+  <h2 id="analysis-panel-title" style="margin-top:8px;">✍️ 主题解析文案</h2>
   <div class="grid">
-    <div class="full"><label>一句话亮点（文案开头）</label><input id="hook" value="今年JMA2026的主题是「棱」。"></div>
-    <div class="full"><label>主题解析要点（每行一条）</label><textarea id="analysis">棱角 → 生命的锋芒与韧性
+    <div class="full"><label id="label-hook">一句话亮点（文案开头）</label><input id="hook" value="今年JMA2026的主题是「棱」。"></div>
+    <div class="full"><label id="label-analysis">主题解析要点（每行一条）</label><textarea id="analysis">棱角 → 生命的锋芒与韧性
 光 → 折射 / 散射 / 重组
 梦 → 想象 / 力量 / 能量释放</textarea></div>
-    <div class="full"><label>核心设计逻辑</label><input id="logic" value="符号 → 结构 → 形式 → 作品"></div>
-    <div class="full"><label>附加备注（可选）</label><textarea id="extra" placeholder="报名提示、特别说明..."></textarea></div>
+    <div class="full"><label id="label-logic">核心设计逻辑</label><input id="logic" value="符号 → 结构 → 形式 → 作品"></div>
+    <div class="full"><label id="label-extra">附加备注（可选）</label><textarea id="extra" placeholder="报名提示、特别说明..."></textarea></div>
   </div>
 </div>
 
 <!-- Panel 3: Style Directions -->
 <div class="panel">
-  <h2>🎨 参赛作品风格推荐（4个方向）</h2>
-  <p class="hint" style="margin-bottom:14px;color:#666;">每个方向填写：名称、标签、简介、2条技巧提示</p>
+  <h2 id="style-panel-title">🎨 参赛作品风格推荐（4个方向）</h2>
+  <p class="hint" id="style-panel-hint" style="margin-bottom:14px;color:#666;">每个方向填写：名称、标签、简介、2条技巧提示</p>
   <div class="ai-actions" style="margin:0 0 16px;">
     <button class="btn btn-secondary" id="ai-style-btn" onclick="generateStylesFromTheme()">🤖 按主题生成4个风格方向</button>
     <span class="ai-status" id="style-ai-status"></span>
   </div>
   <div class="style-cards-grid">
     <div class="style-card-input">
-      <label>方向01 · 名称</label><input class="sc-name" value="解构光棱">
-      <label>风格标签</label><input class="sc-tag" value="概念 · 实验性">
-      <label>一句简介</label><input class="sc-desc" value="将棱面抽离为几何语言，用断裂、错位表达折射的张力">
-      <label>技巧 1</label><input class="sc-t1" value="多面体切割造型，强调不对称与锋利感">
-      <label>技巧 2</label><input class="sc-t2" value="材质对比：哑光金属 vs 镜面宝石">
+      <label class="sc-label-name">方向01 · 名称</label><input class="sc-name" value="解构光棱">
+      <label class="sc-label-tag">风格标签</label><input class="sc-tag" value="概念 · 实验性">
+      <label class="sc-label-desc">一句简介</label><input class="sc-desc" value="将棱面抽离为几何语言，用断裂、错位表达折射的张力">
+      <label class="sc-label-tip1">技巧 1</label><input class="sc-t1" value="多面体切割造型，强调不对称与锋利感">
+      <label class="sc-label-tip2">技巧 2</label><input class="sc-t2" value="材质对比：哑光金属 vs 镜面宝石">
     </div>
     <div class="style-card-input">
-      <label>方向02 · 名称</label><input class="sc-name" value="东方棱境">
-      <label>风格标签</label><input class="sc-tag" value="文化 · 叙事性">
-      <label>一句简介</label><input class="sc-desc" value="以东方审美为底色，借「棱」重新诠释传统器物的刀锋与气韵">
-      <label>技巧 1</label><input class="sc-t1" value="引用玉器、铜器的棱线语言转化到珠宝设计">
-      <label>技巧 2</label><input class="sc-t2" value="中式图案几何化再创作，保留文化符号">
+      <label class="sc-label-name">方向02 · 名称</label><input class="sc-name" value="东方棱境">
+      <label class="sc-label-tag">风格标签</label><input class="sc-tag" value="文化 · 叙事性">
+      <label class="sc-label-desc">一句简介</label><input class="sc-desc" value="以东方审美为底色，借「棱」重新诠释传统器物的刀锋与气韵">
+      <label class="sc-label-tip1">技巧 1</label><input class="sc-t1" value="引用玉器、铜器的棱线语言转化到珠宝设计">
+      <label class="sc-label-tip2">技巧 2</label><input class="sc-t2" value="中式图案几何化再创作，保留文化符号">
     </div>
     <div class="style-card-input">
-      <label>方向03 · 名称</label><input class="sc-name" value="自然棱晶">
-      <label>风格标签</label><input class="sc-tag" value="自然 · 有机感">
-      <label>一句简介</label><input class="sc-desc" value="矿石结晶、冰川裂纹，让自然中天然的棱角成为设计母题">
-      <label>技巧 1</label><input class="sc-t1" value="原矿标本切面的纹理直接转化为表面处理">
-      <label>技巧 2</label><input class="sc-t2" value="不规则晶簇形态，避免过度对称">
+      <label class="sc-label-name">方向03 · 名称</label><input class="sc-name" value="自然棱晶">
+      <label class="sc-label-tag">风格标签</label><input class="sc-tag" value="自然 · 有机感">
+      <label class="sc-label-desc">一句简介</label><input class="sc-desc" value="矿石结晶、冰川裂纹，让自然中天然的棱角成为设计母题">
+      <label class="sc-label-tip1">技巧 1</label><input class="sc-t1" value="原矿标本切面的纹理直接转化为表面处理">
+      <label class="sc-label-tip2">技巧 2</label><input class="sc-t2" value="不规则晶簇形态，避免过度对称">
     </div>
     <div class="style-card-input">
-      <label>方向04 · 名称</label><input class="sc-name" value="光影叙事">
-      <label>风格标签</label><input class="sc-tag" value="感知 · 互动性">
-      <label>一句简介</label><input class="sc-desc" value="以棱面对光的折射为核心体验，让作品在不同光源下产生戏剧变化">
-      <label>技巧 1</label><input class="sc-t1" value="精算切割角度，使宝石转动时出现光谱散射">
-      <label>技巧 2</label><input class="sc-t2" value="半透明材料叠加，制造光线的层次与深度">
+      <label class="sc-label-name">方向04 · 名称</label><input class="sc-name" value="光影叙事">
+      <label class="sc-label-tag">风格标签</label><input class="sc-tag" value="感知 · 互动性">
+      <label class="sc-label-desc">一句简介</label><input class="sc-desc" value="以棱面对光的折射为核心体验，让作品在不同光源下产生戏剧变化">
+      <label class="sc-label-tip1">技巧 1</label><input class="sc-t1" value="精算切割角度，使宝石转动时出现光谱散射">
+      <label class="sc-label-tip2">技巧 2</label><input class="sc-t2" value="半透明材料叠加，制造光线的层次与深度">
     </div>
   </div>
 </div>
 
 <!-- Panel 4: Awards -->
 <div class="panel">
-  <h2>🏆 奖项设置</h2>
-  <p class="hint" style="margin-bottom:14px;color:#666;">奖品用顿号或逗号分隔多项</p>
+  <h2 id="award-panel-title">🏆 奖项设置</h2>
+  <p class="hint" id="award-panel-hint" style="margin-bottom:14px;color:#666;">奖品用顿号或逗号分隔多项</p>
   <div class="prize-tiers">
     <div class="prize-tier">
-      <div><label>奖项名称</label><input class="pt-name" value="金奖"></div>
-      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥30,000"></div>
-      <div><label>附加奖品</label><input class="pt-perks" value="国际展览展出机会、专业导师点评、证书"></div>
+      <div><label class="pt-label-name">奖项名称</label><input class="pt-name" value="金奖"></div>
+      <div><label class="pt-label-amount">奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥30,000"></div>
+      <div><label class="pt-label-perks">附加奖品</label><input class="pt-perks" value="国际展览展出机会、专业导师点评、证书"></div>
     </div>
     <div class="prize-tier">
-      <div><label>奖项名称</label><input class="pt-name" value="银奖"></div>
-      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥15,000"></div>
-      <div><label>附加奖品</label><input class="pt-perks" value="作品集收录、行业媒体报道、证书"></div>
+      <div><label class="pt-label-name">奖项名称</label><input class="pt-name" value="银奖"></div>
+      <div><label class="pt-label-amount">奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥15,000"></div>
+      <div><label class="pt-label-perks">附加奖品</label><input class="pt-perks" value="作品集收录、行业媒体报道、证书"></div>
     </div>
     <div class="prize-tier">
-      <div><label>奖项名称</label><input class="pt-name" value="铜奖"></div>
-      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥8,000"></div>
-      <div><label>附加奖品</label><input class="pt-perks" value="优秀作品展展出、证书"></div>
+      <div><label class="pt-label-name">奖项名称</label><input class="pt-name" value="铜奖"></div>
+      <div><label class="pt-label-amount">奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥8,000"></div>
+      <div><label class="pt-label-perks">附加奖品</label><input class="pt-perks" value="优秀作品展展出、证书"></div>
     </div>
     <div class="prize-tier">
-      <div><label>奖项名称</label><input class="pt-name" value="最佳创意奖"></div>
-      <div><label>奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥5,000"></div>
-      <div><label>附加奖品</label><input class="pt-perks" value="品牌合作资源对接、证书"></div>
+      <div><label class="pt-label-name">奖项名称</label><input class="pt-name" value="最佳创意奖"></div>
+      <div><label class="pt-label-amount">奖金 / 主要奖励</label><input class="pt-amount" value="奖金 ¥5,000"></div>
+      <div><label class="pt-label-perks">附加奖品</label><input class="pt-perks" value="品牌合作资源对接、证书"></div>
     </div>
   </div>
   <br>
-  <div><label>额外福利（逗号分隔，显示在奖项卡底部）</label>
+  <div><label id="label-extra-benefits">额外福利（逗号分隔，显示在奖项卡底部）</label>
   <input id="extra-benefits" value="所有入围选手获颁证书，优秀作品收录年鉴，获奖者受邀参加颁奖典礼"></div>
 </div>
 
 <div class="actions">
   <button class="btn btn-secondary" id="ai-visual-btn" onclick="generateVisualStyleFromTheme()">🎨 AI 生成帖子视觉风格</button>
-  <button class="btn btn-primary" onclick="generate()">✨ 生成全部图片</button>
+  <button class="btn btn-primary" id="generate-btn" onclick="generate()">✨ 生成全部图片</button>
   <span class="ai-status" id="visual-ai-status"></span>
 </div>
 
 <!-- Output -->
 <div id="output-area">
   <div class="output-header">
-    <h2>🖼 生成结果</h2>
+    <h2 id="output-title">🖼 生成结果</h2>
     <div class="tabs">
-      <button class="tab active" onclick="switchTab('images',this)">图片预览</button>
-      <button class="tab" onclick="switchTab('caption',this)">文案</button>
-      <button class="tab" onclick="switchTab('infoText',this)">文字版信息</button>
+      <button class="tab active" id="tab-images" onclick="switchTab('images',this)">图片预览</button>
+      <button class="tab" id="tab-caption" onclick="switchTab('caption',this)">文案</button>
+      <button class="tab" id="tab-info-text" onclick="switchTab('infoText',this)">文字版信息</button>
     </div>
   </div>
-  <div class="dl-hint">💡 <strong>保存：</strong>使用下方按钮直接导出 PNG 图片；右键另存会保存网页，不适合发帖。</div>
+  <div class="dl-hint" id="download-hint">💡 <strong>保存：</strong>使用下方按钮直接导出 PNG 图片；右键另存会保存网页，不适合发帖。</div>
 
   <div id="images-panel">
     <div class="image-nav">
-      <button class="img-tab active" onclick="switchImg(1,this)">封面（1/4）</button>
-      <button class="img-tab" onclick="switchImg(2,this)">信息卡（2/4）</button>
-      <button class="img-tab" onclick="switchImg(3,this)">风格推荐（3/4）</button>
-      <button class="img-tab" onclick="switchImg(4,this)">奖项详情（4/4）</button>
+      <button class="img-tab active" id="img-tab-1" onclick="switchImg(1,this)">封面（1/4）</button>
+      <button class="img-tab" id="img-tab-2" onclick="switchImg(2,this)">信息卡（2/4）</button>
+      <button class="img-tab" id="img-tab-3" onclick="switchImg(3,this)">风格推荐（3/4）</button>
+      <button class="img-tab" id="img-tab-4" onclick="switchImg(4,this)">奖项详情（4/4）</button>
     </div>
     <div class="download-actions">
-      <button class="btn btn-secondary" onclick="downloadCurrentCard()">下载当前 PNG</button>
-      <button class="btn btn-secondary" onclick="downloadAllCards()">下载全部 PNG</button>
+      <button class="btn btn-secondary" id="download-current-btn" onclick="downloadCurrentCard()">下载当前 PNG</button>
+      <button class="btn btn-secondary" id="download-all-btn" onclick="downloadAllCards()">下载全部 PNG</button>
       <span class="download-status" id="download-status"></span>
     </div>
 
@@ -597,7 +635,7 @@ body.tpl-catalog .c2-badge { left:64px; transform:none; border-color:#201915; }
           <div class="c2-slogan-zh" id="c2-slogan-zh">主题</div>
           <div class="c2-slogan-en" id="c2-slogan-en">Slogan</div>
         </div>
-        <div class="c2-badge"><div class="c2-badge-zh">比赛现正接受报名</div><div class="c2-badge-en">Competition Now Open For Application</div></div>
+        <div class="c2-badge"><div class="c2-badge-zh" id="c2-badge-zh">比赛现正接受报名</div><div class="c2-badge-en" id="c2-badge-en">Competition Now Open For Application</div></div>
         <div class="c2-foot" id="c2-foot">截止日期 / Deadline —</div>
       </div>
     </div>
@@ -622,8 +660,8 @@ body.tpl-catalog .c2-badge { left:64px; transform:none; border-color:#201915; }
         <div class="c3-bg"></div>
         <div class="c3-deco" id="c3-deco">S</div>
         <div class="c3-header">
-          <div class="c3-label">Style Direction</div>
-          <div class="c3-title">参赛作品<span>风格推荐</span></div>
+          <div class="c3-label" id="c3-label">Style Direction</div>
+          <div class="c3-title"><span id="c3-title-main">参赛作品</span><span id="c3-title-accent">风格推荐</span></div>
           <div class="c3-divider"></div>
           <div class="c3-subtitle" id="c3-sub">以下方向仅供参考，鼓励突破与自由表达</div>
         </div>
@@ -637,14 +675,14 @@ body.tpl-catalog .c2-badge { left:64px; transform:none; border-color:#201915; }
       <div id="card4">
         <div class="c4-bg"></div><div class="c4-grid-lines"></div>
         <div class="c4-header">
-          <div class="c4-label">Awards &amp; Prizes</div>
-          <div class="c4-title">奖项<span>含金量</span>详解</div>
+          <div class="c4-label" id="c4-label">Awards &amp; Prizes</div>
+          <div class="c4-title"><span id="c4-title-main">奖项</span><span id="c4-title-accent">含金量</span><span id="c4-title-tail">详解</span></div>
           <div class="c4-divider"></div>
           <div class="c4-sub" id="c4-sub">奖金 · 展览 · 资源 · 荣誉</div>
         </div>
         <div class="c4-tiers" id="c4-tiers"></div>
         <div class="c4-extras-wrap" id="c4-extras-wrap">
-          <div class="c4-extras-title">All Participants · 全体参赛者</div>
+          <div class="c4-extras-title" id="c4-extras-title">All Participants · 全体参赛者</div>
           <div class="c4-extra-items" id="c4-extras"></div>
         </div>
         <div class="c4-foot"><span class="c4-brand">TengRy</span><span class="c4-pg">4 / 4</span></div>
@@ -656,104 +694,524 @@ body.tpl-catalog .c2-badge { left:64px; transform:none; border-color:#201915; }
   <div id="caption-panel">
     <div class="cap-title" id="cap-title">标题</div>
     <div class="cap-body" id="cap-body"></div>
-    <button class="copy-btn" onclick="copyCaption()">📋 复制文案</button>
+    <button class="copy-btn" id="copy-caption-btn" onclick="copyCaption()">📋 复制文案</button>
   </div>
 
   <!-- Info Text -->
   <div id="info-text-panel">
     <div class="cap-title" id="info-text-title">比赛信息总结</div>
     <div class="cap-body" id="info-text-body"></div>
-    <button class="copy-btn" onclick="copyInfoText()">📋 复制文字版信息</button>
+    <button class="copy-btn" id="copy-info-btn" onclick="copyInfoText()">📋 复制文字版信息</button>
   </div>
 </div>
 
 <script>
-function switchTab(t, btn) {
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('images-panel').style.display = t==='images'?'block':'none';
-  document.getElementById('caption-panel').style.display = t==='caption'?'block':'none';
-  document.getElementById('info-text-panel').style.display = t==='infoText'?'block':'none';
+const UI_TEXT = {
+  zh: {
+    pageTitle: '比赛帖子生成器',
+    appTitle: '比赛帖子生成器',
+    appSubtitle: '输入比赛信息，自动生成 4 张小红书风格帖子图片',
+    aiPanelTitle: '🤖 AI 从官网链接自动提取',
+    labelAiUrl: '比赛官网链接',
+    labelDeepseekKey: 'DeepSeek API Key',
+    labelDeepseekModel: 'DeepSeek 模型',
+    labelDeepseekBase: 'DeepSeek API 地址',
+    labelReaderPrefix: '官网抓取方式',
+    aiFillBtn: '🤖 读取官网并自动填表',
+    copyUrlBtn: '同步下方官网链接',
+    aiNote: 'API Key 只保存在当前浏览器页面内，用于直接请求 DeepSeek。若某些官网禁止跨域读取，页面会自动使用 Reader 转 Markdown 后再解析。',
+    basicPanelTitle: '📋 比赛基本信息',
+    labelNameZh: '比赛中文名称 *',
+    labelNameEn: '比赛英文名称',
+    labelOrganizer: '主办单位',
+    labelEligibility: '参赛资格',
+    labelTheme: '比赛主题（中文）',
+    labelSlogan: '主题英文 / Slogan',
+    labelDeadline: '截止日期',
+    labelResultDate: '结果公布',
+    labelSubmission: '提交内容',
+    labelUrl: '官网链接（可选）',
+    labelKeywords: '主题关键词（用 | 分隔）',
+    scorePanelTitle: '⭐ 奖项含金量评分（满分20）',
+    labelS1: '主办方权威性',
+    labelS2: '行业认可度',
+    labelS3: '作品质量要求',
+    labelS4: '国际化程度',
+    analysisPanelTitle: '✍️ 主题解析文案',
+    labelHook: '一句话亮点（文案开头）',
+    labelAnalysis: '主题解析要点（每行一条）',
+    labelLogic: '核心设计逻辑',
+    labelExtra: '附加备注（可选）',
+    stylePanelTitle: '🎨 参赛作品风格推荐（4个方向）',
+    stylePanelHint: '每个方向填写：名称、标签、简介、2条技巧提示',
+    aiStyleBtn: '🤖 按主题生成4个风格方向',
+    scLabelName: '方向{{n}} · 名称',
+    scLabelTag: '风格标签',
+    scLabelDesc: '一句简介',
+    scLabelTip1: '技巧 1',
+    scLabelTip2: '技巧 2',
+    awardPanelTitle: '🏆 奖项设置',
+    awardPanelHint: '奖品用顿号或逗号分隔多项',
+    ptLabelName: '奖项名称',
+    ptLabelAmount: '奖金 / 主要奖励',
+    ptLabelPerks: '附加奖品',
+    labelExtraBenefits: '额外福利（逗号分隔，显示在奖项卡底部）',
+    aiVisualBtn: '🎨 AI 生成帖子视觉风格',
+    generateBtn: '✨ 生成全部图片',
+    outputTitle: '🖼 生成结果',
+    tabImages: '图片预览',
+    tabCaption: '文案',
+    tabInfoText: '文字版信息',
+    downloadHint: '💡 <strong>保存：</strong>使用下方按钮直接导出 PNG 图片；右键另存会保存网页，不适合发帖。',
+    imgTab1: '封面（1/4）',
+    imgTab2: '信息卡（2/4）',
+    imgTab3: '风格推荐（3/4）',
+    imgTab4: '奖项详情（4/4）',
+    downloadCurrentBtn: '下载当前 PNG',
+    downloadAllBtn: '下载全部 PNG',
+    c2BadgeZh: '比赛现正接受报名',
+    c2BadgeEn: 'Competition Now Open For Application',
+    c3Label: 'Style Direction',
+    c3TitleMain: '参赛作品',
+    c3TitleAccent: '风格推荐',
+    c4Label: 'Awards & Prizes',
+    c4TitleMain: '奖项',
+    c4TitleAccent: '含金量',
+    c4TitleTail: '详解',
+    c4ExtrasTitle: 'All Participants · 全体参赛者',
+    copyCaptionBtn: '📋 复制文案',
+    copyInfoBtn: '📋 复制文字版信息',
+    aiUrlPlaceholder: 'https://competition-official-site.com/...',
+    urlPlaceholder: 'https://...',
+    extraPlaceholder: '报名提示、特别说明...',
+    copyCaptionDone: '✅ 已复制！',
+    copyInfoDone: '✅ 已复制！'
+  },
+  ko: {
+    pageTitle: '공모전 포스트 생성기',
+    appTitle: '공모전 포스트 생성기',
+    appSubtitle: '공모전 정보를 입력하면 샤오홍슈 스타일의 4장 카드 이미지를 자동 생성합니다',
+    aiPanelTitle: '🤖 공식 사이트 링크에서 AI 자동 추출',
+    labelAiUrl: '공식 사이트 링크',
+    labelDeepseekKey: 'DeepSeek API Key',
+    labelDeepseekModel: 'DeepSeek 모델',
+    labelDeepseekBase: 'DeepSeek API 주소',
+    labelReaderPrefix: '공식 사이트 읽기 방식',
+    aiFillBtn: '🤖 공식 사이트를 읽고 자동 입력',
+    copyUrlBtn: '아래 링크를 여기로 복사',
+    aiNote: 'API Key는 현재 브라우저 페이지 안에만 보관되며 DeepSeek 직접 호출에 사용됩니다. 일부 사이트가 CORS를 막으면 Reader로 Markdown 변환 후 다시 해석합니다.',
+    basicPanelTitle: '📋 공모전 기본 정보',
+    labelNameZh: '공모전 현지어 이름 *',
+    labelNameEn: '공모전 영문명',
+    labelOrganizer: '주최 기관',
+    labelEligibility: '참가 자격',
+    labelTheme: '공모전 주제',
+    labelSlogan: '영문 주제 / 슬로건',
+    labelDeadline: '마감일',
+    labelResultDate: '결과 발표일',
+    labelSubmission: '제출물',
+    labelUrl: '공식 사이트 링크(선택)',
+    labelKeywords: '주제 키워드 ( | 로 구분)',
+    scorePanelTitle: '⭐ 수상 가치 점수 (20점 만점)',
+    labelS1: '주최 기관의 권위',
+    labelS2: '업계 인지도',
+    labelS3: '작품 요구 수준',
+    labelS4: '국제성',
+    analysisPanelTitle: '✍️ 주제 해설 문안',
+    labelHook: '한 줄 훅 문장',
+    labelAnalysis: '주제 해설 포인트 (한 줄씩)',
+    labelLogic: '핵심 디자인 로직',
+    labelExtra: '추가 메모 (선택)',
+    stylePanelTitle: '🎨 추천 작품 스타일 방향 (4가지)',
+    stylePanelHint: '각 방향마다 이름, 태그, 설명, 팁 2개를 입력합니다',
+    aiStyleBtn: '🤖 주제로 4가지 스타일 방향 생성',
+    scLabelName: '방향 {{n}} · 이름',
+    scLabelTag: '스타일 태그',
+    scLabelDesc: '한 줄 설명',
+    scLabelTip1: '팁 1',
+    scLabelTip2: '팁 2',
+    awardPanelTitle: '🏆 시상 구성',
+    awardPanelHint: '복수 경품은 쉼표로 구분하세요',
+    ptLabelName: '상 이름',
+    ptLabelAmount: '상금 / 주요 혜택',
+    ptLabelPerks: '추가 혜택',
+    labelExtraBenefits: '추가 혜택 (쉼표 구분, 하단 배지 영역에 표시)',
+    aiVisualBtn: '🎨 AI 비주얼 스타일 생성',
+    generateBtn: '✨ 전체 이미지 생성',
+    outputTitle: '🖼 생성 결과',
+    tabImages: '이미지 미리보기',
+    tabCaption: '캡션',
+    tabInfoText: '텍스트 요약',
+    downloadHint: '💡 <strong>저장:</strong> 아래 버튼으로 PNG를 직접 내보내세요. 브라우저 우클릭 저장은 웹페이지 자체를 저장하므로 게시용에 적합하지 않습니다.',
+    imgTab1: '커버 (1/4)',
+    imgTab2: '정보 카드 (2/4)',
+    imgTab3: '스타일 추천 (3/4)',
+    imgTab4: '시상 안내 (4/4)',
+    downloadCurrentBtn: '현재 PNG 다운로드',
+    downloadAllBtn: '전체 PNG 다운로드',
+    c2BadgeZh: '현재 참가 신청 접수 중',
+    c2BadgeEn: 'Applications Are Open Now',
+    c3Label: 'Style Direction',
+    c3TitleMain: '작품',
+    c3TitleAccent: '스타일 제안',
+    c4Label: 'Awards & Prizes',
+    c4TitleMain: '시상',
+    c4TitleAccent: '가치',
+    c4TitleTail: '가이드',
+    c4ExtrasTitle: 'For All Participants · 전체 참가자',
+    copyCaptionBtn: '📋 캡션 복사',
+    copyInfoBtn: '📋 텍스트 요약 복사',
+    aiUrlPlaceholder: 'https://competition-official-site.com/...',
+    urlPlaceholder: 'https://...',
+    extraPlaceholder: '접수 팁, 유의사항 등을 입력하세요...',
+    copyCaptionDone: '✅ 복사 완료!',
+    copyInfoDone: '✅ 복사 완료!'
+  }
+};
+
+const FIELD_DEFAULTS = {
+  zh: {
+    'name-zh': 'JMA 2026 珠宝设计大赛',
+    'name-en': 'JMA International Jewelry Design Competition 2026',
+    organizer: '香港珠宝制造业厂商会 / 香港珠宝工坊',
+    eligibility: '全球设计师均可参与',
+    theme: '棱 · 光之棱角，梦之力量',
+    slogan: 'Facets of Light, Dreams of Power',
+    deadline: '2026.06.05',
+    'result-date': '2026.07',
+    submission: '图稿，实物',
+    keywords: '棱角 | 棱镜 | 光 | 折射 | 散射 | 重组 | 能量 | 锋芒 | 韧性 | 转化',
+    hook: '今年JMA2026的主题是「棱」。',
+    analysis: '棱角 → 生命的锋芒与韧性\n光 → 折射 / 散射 / 重组\n梦 → 想象 / 力量 / 能量释放',
+    logic: '符号 → 结构 → 形式 → 作品',
+    extra: '',
+    'extra-benefits': '所有入围选手获颁证书，优秀作品收录年鉴，获奖者受邀参加颁奖典礼'
+  },
+  ko: {
+    'name-zh': 'JMA 2026 주얼리 디자인 공모전',
+    'name-en': 'JMA International Jewelry Design Competition 2026',
+    organizer: '홍콩 주얼리 제조업 협회 / Hong Kong Jewelry Workshop',
+    eligibility: '전 세계 디자이너 누구나 참가 가능',
+    theme: '棱 · 빛의 모서리, 꿈의 힘',
+    slogan: 'Facets of Light, Dreams of Power',
+    deadline: '2026.06.05',
+    'result-date': '2026.07',
+    submission: '도안, 실물 작품',
+    keywords: '모서리 | 프리즘 | 빛 | 굴절 | 분산 | 재구성 | 에너지 | 날카로움 | 회복력 | 전환',
+    hook: '올해 JMA2026의 주제는 「棱」입니다.',
+    analysis: '모서리 → 삶의 날카로움과 회복력\n빛 → 굴절 / 분산 / 재구성\n꿈 → 상상력 / 힘 / 에너지의 방출',
+    logic: '상징 → 구조 → 형식 → 작품',
+    extra: '',
+    'extra-benefits': '본선 진출자 전원 인증서 제공, 우수작 연감 수록, 수상자 시상식 초청'
+  }
+};
+
+const STYLE_DEFAULTS = {
+  zh: [
+    {name:'解构光棱', tag:'概念 · 实验性', desc:'将棱面抽离为几何语言，用断裂、错位表达折射的张力', tip1:'多面体切割造型，强调不对称与锋利感', tip2:'材质对比：哑光金属 vs 镜面宝石'},
+    {name:'东方棱境', tag:'文化 · 叙事性', desc:'以东方审美为底色，借「棱」重新诠释传统器物的刀锋与气韵', tip1:'引用玉器、铜器的棱线语言转化到珠宝设计', tip2:'中式图案几何化再创作，保留文化符号'},
+    {name:'自然棱晶', tag:'自然 · 有机感', desc:'矿石结晶、冰川裂纹，让自然中天然的棱角成为设计母题', tip1:'原矿标本切面的纹理直接转化为表面处理', tip2:'不规则晶簇形态，避免过度对称'},
+    {name:'光影叙事', tag:'感知 · 互动性', desc:'以棱面对光的折射为核心体验，让作品在不同光源下产生戏剧变化', tip1:'精算切割角度，使宝石转动时出现光谱散射', tip2:'半透明材料叠加，制造光线的层次与深度'}
+  ],
+  ko: [
+    {name:'빛의 해체', tag:'컨셉 · 실험', desc:'프리즘 면을 기하 언어로 풀어내고 균열과 어긋남으로 긴장을 만듭니다', tip1:'다면체 절단 형태로 비대칭과 날카로운 실루엣을 강조합니다', tip2:'무광 금속과 미러 광택 스톤을 대비시켜 재질감을 키웁니다'},
+    {name:'동양의 능선', tag:'문화 · 서사', desc:'동양 미감을 바탕으로 전통 기물의 선과 칼끝을 현대 주얼리로 번역합니다', tip1:'옥기와 청동기의 선형 언어를 구조 요소로 전환해 보세요', tip2:'전통 문양을 기하학적으로 재구성해 문화 코드를 남깁니다'},
+    {name:'자연 결정체', tag:'자연 · 유기성', desc:'광물 결정과 빙하 균열에서 출발해 자연의 각을 작품의 모티프로 삼습니다', tip1:'원석 절단면의 결을 표면 처리나 텍스처로 직접 옮겨옵니다', tip2:'불규칙한 결정 군집 형태로 과도한 대칭을 피합니다'},
+    {name:'빛의 서사', tag:'감각 · 인터랙션', desc:'빛의 굴절 경험을 중심에 두고 조명에 따라 인상이 변하는 작품을 만듭니다', tip1:'절단 각도를 정교하게 계산해 회전 시 스펙트럼이 퍼지게 합니다', tip2:'반투명 재료를 겹쳐 빛의 층과 깊이를 설계합니다'}
+  ]
+};
+
+const PRIZE_DEFAULTS = {
+  zh: [
+    {name:'金奖', amount:'奖金 ¥30,000', perks:'国际展览展出机会、专业导师点评、证书'},
+    {name:'银奖', amount:'奖金 ¥15,000', perks:'作品集收录、行业媒体报道、证书'},
+    {name:'铜奖', amount:'奖金 ¥8,000', perks:'优秀作品展展出、证书'},
+    {name:'最佳创意奖', amount:'奖金 ¥5,000', perks:'品牌合作资源对接、证书'}
+  ],
+  ko: [
+    {name:'금상', amount:'상금 ¥30,000', perks:'국제 전시 참여 기회, 전문 멘토 피드백, 인증서'},
+    {name:'은상', amount:'상금 ¥15,000', perks:'포트폴리오 수록, 업계 미디어 소개, 인증서'},
+    {name:'동상', amount:'상금 ¥8,000', perks:'우수작 전시 참여, 인증서'},
+    {name:'베스트 크리에이티브상', amount:'상금 ¥5,000', perks:'브랜드 협업 연결, 인증서'}
+  ]
+};
+
+let currentLang = 'zh';
+
+const g = id => document.getElementById(id).value.trim();
+const safeHex = value => /^#[0-9a-fA-F]{6}$/.test(String(value || '').trim()) ? String(value).trim() : '';
+const visualTemplates = ['crystal','cyber','ink','botanical','atelier','poster','split','blueprint','brutal','luxe','neon','catalog'];
+const cardFileNames = {1:'02-info-card', 2:'01-cover', 3:'03-style-directions', 4:'04-awards'};
+const cardToView = {2:1, 1:2, 3:3, 4:4};
+
+function textPack() {
+  return UI_TEXT[currentLang] || UI_TEXT.zh;
 }
+
+function isKo() {
+  return currentLang === 'ko';
+}
+
+function setVal(id, value) {
+  if (value === undefined || value === null || value === '') return;
+  document.getElementById(id).value = Array.isArray(value) ? value.join(' | ') : String(value).trim();
+}
+
+function fillVal(id, value) {
+  document.getElementById(id).value = Array.isArray(value) ? value.join(' | ') : String(value ?? '').trim();
+}
+
+function setAiStatus(msg, type='') {
+  const el = document.getElementById('ai-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+}
+
+function setStyleAiStatus(msg, type='') {
+  const el = document.getElementById('style-ai-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+}
+
+function setVisualAiStatus(msg, type='') {
+  const el = document.getElementById('visual-ai-status');
+  el.textContent = msg;
+  el.className = 'ai-status' + (type ? ' ' + type : '');
+}
+
+function setDownloadStatus(msg) {
+  const el = document.getElementById('download-status');
+  if (el) el.textContent = msg;
+}
+
+function safeFilePart(text) {
+  return String(text || 'competition').replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'-').slice(0,32) || 'competition';
+}
+
+function getStoredLang() {
+  try {
+    return localStorage.getItem('contest-redbook-lang') || 'zh';
+  } catch (_) {
+    return 'zh';
+  }
+}
+
+function setStoredLang(lang) {
+  try {
+    localStorage.setItem('contest-redbook-lang', lang);
+  } catch (_) {}
+}
+
+function syncInputValue(id, nextLang, prevLang) {
+  const el = document.getElementById(id);
+  const currentValue = el.value;
+  const prevValue = FIELD_DEFAULTS[prevLang]?.[id];
+  const nextValue = FIELD_DEFAULTS[nextLang]?.[id];
+  if (nextValue === undefined) return;
+  if (!currentValue || currentValue === prevValue) {
+    el.value = nextValue;
+  }
+}
+
+function syncRepeatingDefaults(nextLang, prevLang) {
+  document.querySelectorAll('.style-card-input').forEach((card, index) => {
+    ['name', 'tag', 'desc', 'tip1', 'tip2'].forEach((field, fieldIndex) => {
+      const selector = ['.sc-name','.sc-tag','.sc-desc','.sc-t1','.sc-t2'][fieldIndex];
+      const el = card.querySelector(selector);
+      const prevValue = STYLE_DEFAULTS[prevLang]?.[index]?.[field];
+      const nextValue = STYLE_DEFAULTS[nextLang]?.[index]?.[field];
+      if (nextValue !== undefined && (!el.value || el.value === prevValue)) {
+        el.value = nextValue;
+      }
+    });
+  });
+  document.querySelectorAll('.prize-tier').forEach((tier, index) => {
+    ['name', 'amount', 'perks'].forEach((field, fieldIndex) => {
+      const selector = ['.pt-name','.pt-amount','.pt-perks'][fieldIndex];
+      const el = tier.querySelector(selector);
+      const prevValue = PRIZE_DEFAULTS[prevLang]?.[index]?.[field];
+      const nextValue = PRIZE_DEFAULTS[nextLang]?.[index]?.[field];
+      if (nextValue !== undefined && (!el.value || el.value === prevValue)) {
+        el.value = nextValue;
+      }
+    });
+  });
+}
+
+function applyStaticText() {
+  const t = textPack();
+  document.documentElement.lang = isKo() ? 'ko' : 'zh-CN';
+  document.title = t.pageTitle;
+  document.getElementById('lang-zh').classList.toggle('active', currentLang === 'zh');
+  document.getElementById('lang-ko').classList.toggle('active', currentLang === 'ko');
+
+  const ids = {
+    'app-title': t.appTitle,
+    'app-subtitle': t.appSubtitle,
+    'ai-panel-title': t.aiPanelTitle,
+    'label-ai-url': t.labelAiUrl,
+    'label-deepseek-key': t.labelDeepseekKey,
+    'label-deepseek-model': t.labelDeepseekModel,
+    'label-deepseek-base': t.labelDeepseekBase,
+    'label-reader-prefix': t.labelReaderPrefix,
+    'ai-fill-btn': t.aiFillBtn,
+    'copy-url-btn': t.copyUrlBtn,
+    'ai-note': t.aiNote,
+    'basic-panel-title': t.basicPanelTitle,
+    'label-name-zh': t.labelNameZh,
+    'label-name-en': t.labelNameEn,
+    'label-organizer': t.labelOrganizer,
+    'label-eligibility': t.labelEligibility,
+    'label-theme': t.labelTheme,
+    'label-slogan': t.labelSlogan,
+    'label-deadline': t.labelDeadline,
+    'label-result-date': t.labelResultDate,
+    'label-submission': t.labelSubmission,
+    'label-url': t.labelUrl,
+    'label-keywords': t.labelKeywords,
+    'score-panel-title': t.scorePanelTitle,
+    'label-s1': t.labelS1,
+    'label-s2': t.labelS2,
+    'label-s3': t.labelS3,
+    'label-s4': t.labelS4,
+    'analysis-panel-title': t.analysisPanelTitle,
+    'label-hook': t.labelHook,
+    'label-analysis': t.labelAnalysis,
+    'label-logic': t.labelLogic,
+    'label-extra': t.labelExtra,
+    'style-panel-title': t.stylePanelTitle,
+    'style-panel-hint': t.stylePanelHint,
+    'ai-style-btn': t.aiStyleBtn,
+    'award-panel-title': t.awardPanelTitle,
+    'award-panel-hint': t.awardPanelHint,
+    'label-extra-benefits': t.labelExtraBenefits,
+    'ai-visual-btn': t.aiVisualBtn,
+    'generate-btn': t.generateBtn,
+    'output-title': t.outputTitle,
+    'tab-images': t.tabImages,
+    'tab-caption': t.tabCaption,
+    'tab-info-text': t.tabInfoText,
+    'img-tab-1': t.imgTab1,
+    'img-tab-2': t.imgTab2,
+    'img-tab-3': t.imgTab3,
+    'img-tab-4': t.imgTab4,
+    'download-current-btn': t.downloadCurrentBtn,
+    'download-all-btn': t.downloadAllBtn,
+    'c2-badge-zh': t.c2BadgeZh,
+    'c2-badge-en': t.c2BadgeEn,
+    'c3-label': t.c3Label,
+    'c3-title-main': t.c3TitleMain,
+    'c3-title-accent': t.c3TitleAccent,
+    'c4-label': t.c4Label,
+    'c4-title-main': t.c4TitleMain,
+    'c4-title-accent': t.c4TitleAccent,
+    'c4-title-tail': t.c4TitleTail,
+    'c4-extras-title': t.c4ExtrasTitle,
+    'copy-caption-btn': t.copyCaptionBtn,
+    'copy-info-btn': t.copyInfoBtn
+  };
+  Object.entries(ids).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+
+  document.getElementById('download-hint').innerHTML = t.downloadHint;
+  document.getElementById('ai-url').placeholder = t.aiUrlPlaceholder;
+  document.getElementById('url').placeholder = t.urlPlaceholder;
+  document.getElementById('extra').placeholder = t.extraPlaceholder;
+
+  document.querySelectorAll('.sc-label-name').forEach((el, index) => {
+    el.textContent = t.scLabelName.replace('{{n}}', String(index + 1).padStart(2, '0'));
+  });
+  document.querySelectorAll('.sc-label-tag').forEach(el => { el.textContent = t.scLabelTag; });
+  document.querySelectorAll('.sc-label-desc').forEach(el => { el.textContent = t.scLabelDesc; });
+  document.querySelectorAll('.sc-label-tip1').forEach(el => { el.textContent = t.scLabelTip1; });
+  document.querySelectorAll('.sc-label-tip2').forEach(el => { el.textContent = t.scLabelTip2; });
+  document.querySelectorAll('.pt-label-name').forEach(el => { el.textContent = t.ptLabelName; });
+  document.querySelectorAll('.pt-label-amount').forEach(el => { el.textContent = t.ptLabelAmount; });
+  document.querySelectorAll('.pt-label-perks').forEach(el => { el.textContent = t.ptLabelPerks; });
+}
+
+function setLanguage(lang, options = {}) {
+  const nextLang = lang === 'ko' ? 'ko' : 'zh';
+  const prevLang = options.prevLang || currentLang;
+  currentLang = nextLang;
+  if (!options.skipDefaults) {
+    Object.keys(FIELD_DEFAULTS[nextLang]).forEach(id => syncInputValue(id, nextLang, prevLang));
+    syncRepeatingDefaults(nextLang, prevLang);
+  }
+  applyStaticText();
+  setStoredLang(nextLang);
+  if (!options.skipGenerate) generate(false);
+}
+
+function switchTab(t, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('images-panel').style.display = t === 'images' ? 'block' : 'none';
+  document.getElementById('caption-panel').style.display = t === 'caption' ? 'block' : 'none';
+  document.getElementById('info-text-panel').style.display = t === 'infoText' ? 'block' : 'none';
+}
+
 function switchImg(n, btn) {
-  document.querySelectorAll('.img-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.img-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   const viewToCard = {1:2, 2:1, 3:3, 4:4};
   const cardId = viewToCard[n] || 2;
   document.body.dataset.currentView = String(n);
   document.body.dataset.currentCard = String(cardId);
-  [1,2,3,4].forEach(i=>{ document.getElementById('wrap'+i).classList.toggle('show',i===cardId); });
+  [1,2,3,4].forEach(i => document.getElementById('wrap' + i).classList.toggle('show', i === cardId));
 }
-const g = id => document.getElementById(id).value.trim();
 
-const setVal = (id, value) => {
-  if (value === undefined || value === null || value === '') return;
-  document.getElementById(id).value = Array.isArray(value) ? value.join(' | ') : String(value).trim();
-};
-const fillVal = (id, value) => {
-  document.getElementById(id).value = Array.isArray(value) ? value.join(' | ') : String(value ?? '').trim();
-};
-const setAiStatus = (msg, type='') => {
-  const el = document.getElementById('ai-status');
-  el.textContent = msg;
-  el.className = 'ai-status' + (type ? ' ' + type : '');
-};
-const setStyleAiStatus = (msg, type='') => {
-  const el = document.getElementById('style-ai-status');
-  el.textContent = msg;
-  el.className = 'ai-status' + (type ? ' ' + type : '');
-};
-const setVisualAiStatus = (msg, type='') => {
-  const el = document.getElementById('visual-ai-status');
-  el.textContent = msg;
-  el.className = 'ai-status' + (type ? ' ' + type : '');
-};
-function copyUrlToAi(){
+function copyUrlToAi() {
   setVal('ai-url', g('url'));
-  setAiStatus('已同步官网链接。', 'ok');
+  setAiStatus(isKo() ? '공식 사이트 링크를 동기화했습니다.' : '已同步官网链接。', 'ok');
 }
-function normalizeReaderUrl(url){
+
+function normalizeReaderUrl(url) {
   const prefix = g('reader-prefix') || 'https://r.jina.ai/';
   return prefix.replace(/\/?$/, '/') + url;
 }
-async function fetchOfficialContent(url){
-  const attempts = [
-    {label:'官网原文', target:url},
-    {label:'Reader Markdown', target:normalizeReaderUrl(url)}
-  ];
+
+async function fetchOfficialContent(url) {
+  const attempts = isKo()
+    ? [{label:'공식 사이트 원문', target:url}, {label:'Reader Markdown', target:normalizeReaderUrl(url)}]
+    : [{label:'官网原文', target:url}, {label:'Reader Markdown', target:normalizeReaderUrl(url)}];
   let lastError = '';
   for (const item of attempts) {
     try {
-      setAiStatus(`正在读取${item.label}...`);
-      const res = await fetch(item.target, {headers:{'Accept':'text/plain,text/html,application/json'}});
+      setAiStatus(isKo() ? `${item.label}을 읽는 중...` : `正在读取${item.label}...`);
+      const res = await fetch(item.target, {headers:{Accept:'text/plain,text/html,application/json'}});
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       const text = await res.text();
       const compact = text.replace(/\s{3,}/g, ' ').trim();
-      if (compact.length < 120) throw new Error('页面内容过短，可能未抓取成功');
+      if (compact.length < 120) throw new Error(isKo() ? '페이지 내용이 너무 짧아 추출에 실패했을 수 있습니다' : '页面内容过短，可能未抓取成功');
       return compact.slice(0, 42000);
     } catch (err) {
       lastError = `${item.label}: ${err.message}`;
     }
   }
-  throw new Error(lastError || '官网内容读取失败');
+  throw new Error(lastError || (isKo() ? '공식 사이트 내용을 읽지 못했습니다' : '官网内容读取失败'));
 }
-function parseJsonText(text){
+
+function parseJsonText(text) {
   const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
   try { return JSON.parse(cleaned); } catch (_) {}
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (match) return JSON.parse(match[0]);
-  throw new Error('DeepSeek 返回内容不是有效 JSON');
+  throw new Error(isKo() ? 'DeepSeek 응답이 유효한 JSON이 아닙니다' : 'DeepSeek 返回内容不是有效 JSON');
 }
-async function callDeepSeekJson(messages, temperature=0.35){
+
+async function callDeepSeekJson(messages, temperature=0.35) {
   const apiKey = g('deepseek-key');
-  if (!apiKey) throw new Error('请先填写 DeepSeek API Key');
+  if (!apiKey) throw new Error(isKo() ? '먼저 DeepSeek API Key를 입력해 주세요' : '请先填写 DeepSeek API Key');
   const base = (g('deepseek-base') || 'https://api.deepseek.com').replace(/\/$/, '');
   const model = g('deepseek-model') || 'deepseek-v4-pro';
   const res = await fetch(`${base}/chat/completions`, {
     method:'POST',
     headers:{
       'Content-Type':'application/json',
-      'Authorization':`Bearer ${apiKey}`
+      Authorization:`Bearer ${apiKey}`
     },
     body:JSON.stringify({
       model,
@@ -765,15 +1223,56 @@ async function callDeepSeekJson(messages, temperature=0.35){
   });
   if (!res.ok) {
     const errText = await res.text().catch(()=>'');
-    throw new Error(`DeepSeek 请求失败：${res.status} ${res.statusText}${errText ? ' / '+errText.slice(0,220) : ''}`);
+    throw new Error(isKo()
+      ? `DeepSeek 요청 실패: ${res.status} ${res.statusText}${errText ? ' / ' + errText.slice(0,220) : ''}`
+      : `DeepSeek 请求失败：${res.status} ${res.statusText}${errText ? ' / ' + errText.slice(0,220) : ''}`);
   }
   const data = await res.json();
   const contentText = data?.choices?.[0]?.message?.content;
-  if (!contentText) throw new Error('DeepSeek 没有返回可解析内容');
+  if (!contentText) throw new Error(isKo() ? 'DeepSeek가 파싱 가능한 응답을 주지 않았습니다' : 'DeepSeek 没有返回可解析内容');
   return parseJsonText(contentText);
 }
-async function askDeepSeekForCompetition(content, url){
-  const prompt = `你是珠宝设计比赛信息编辑。请从官网内容中提取比赛信息，并生成适合小红书帖子的中文字段。只输出 JSON，不要解释。
+
+async function askDeepSeekForCompetition(content, url) {
+  const prompt = isKo()
+    ? `너는 주얼리 디자인 공모전 정보를 정리하는 에디터다. 공식 사이트 내용을 읽고 샤오홍슈 스타일의 게시물 제작에 맞는 구조화 JSON만 출력해라. 설명은 쓰지 마라.
+
+JSON 구조:
+{
+  "nameZh": "공모전 현지어 이름",
+  "nameEn": "공모전 영문명",
+  "organizer": "주최 기관",
+  "eligibility": "참가 자격",
+  "theme": "공모전 주제",
+  "slogan": "영문 주제 또는 슬로건",
+  "deadline": "마감일, 공식 표기 유지",
+  "resultDate": "결과 발표일",
+  "submission": "제출물",
+  "keywords": ["키워드1","키워드2"],
+  "scores": {"authority": 0-20, "recognition": 0-20, "quality": 0-20, "international": 0-20},
+  "hook": "한 줄 훅 문장",
+  "analysis": ["주제 해설 1","주제 해설 2","주제 해설 3"],
+  "logic": "핵심 디자인 로직, 화살표로 연결",
+  "extra": "유의사항 또는 메모",
+  "styleDirections": [
+    {"name":"방향 이름","tag":"태그","desc":"한 줄 설명","tip1":"팁 1","tip2":"팁 2"}
+  ],
+  "prizes": [
+    {"name":"상 이름","amount":"상금 또는 주요 혜택","perks":"추가 혜택, 쉼표 구분"}
+  ],
+  "extraBenefits": "추가 혜택, 쉼표 구분"
+}
+
+규칙:
+1. 공식 사이트에 명시되지 않은 날짜와 상금은 꾸며내지 말고 빈 문자열로 둔다.
+2. styleDirections는 반드시 4개를 제공하고 주제에 기반해 생성한다.
+3. prizes는 최대 4개까지, 정보가 없으면 빈 배열로 둔다.
+4. scores는 주최 기관, 업계 영향력, 진입 장벽, 국제성을 기준으로 보수적으로 추정한다.
+
+공식 링크: ${url}
+공식 내용:
+${content}`
+    : `你是珠宝设计比赛信息编辑。请从官网内容中提取比赛信息，并生成适合小红书帖子的中文字段。只输出 JSON，不要解释。
 
 JSON 结构：
 {
@@ -810,31 +1309,56 @@ JSON 结构：
 官网链接：${url}
 官网内容：
 ${content}`;
-  setAiStatus('正在请求 DeepSeek 解析比赛信息...');
+  setAiStatus(isKo() ? 'DeepSeek에 공모전 정보를 구조화 요청하는 중...' : '正在请求 DeepSeek 解析比赛信息...');
   return callDeepSeekJson([
-    {role:'system', content:'你擅长从比赛官网中抽取结构化信息，并为珠宝设计比赛生成准确、克制、可发布的中文帖子资料。'},
+    {
+      role:'system',
+      content: isKo()
+        ? '너는 공모전 공식 사이트에서 구조화된 정보를 정확하고 절제된 톤으로 추출하고, 주얼리 디자인 공모전에 맞는 게시물용 자료를 정리하는 데 능숙하다.'
+        : '你擅长从比赛官网中抽取结构化信息，并为珠宝设计比赛生成准确、克制、可发布的中文帖子资料。'
+    },
     {role:'user', content:prompt}
   ]);
 }
-function applyStyleDirections(styleDirections){
+
+function applyStyleDirections(styleDirections) {
   const styleEls = document.querySelectorAll('.style-card-input');
-  (styleDirections || []).slice(0,4).forEach((item, i)=>{
+  (styleDirections || []).slice(0,4).forEach((item, i) => {
     const el = styleEls[i];
     if (!el) return;
-    const fields = ['name','tag','desc','tip1','tip2'];
-    const classes = ['.sc-name','.sc-tag','.sc-desc','.sc-t1','.sc-t2'];
-    fields.forEach((field, idx)=>{
-      el.querySelector(classes[idx]).value = item[field] ? String(item[field]).trim() : '';
+    [['name','.sc-name'], ['tag','.sc-tag'], ['desc','.sc-desc'], ['tip1','.sc-t1'], ['tip2','.sc-t2']].forEach(([field, selector]) => {
+      el.querySelector(selector).value = item[field] ? String(item[field]).trim() : '';
     });
   });
 }
-async function askDeepSeekForStyles(){
+
+async function askDeepSeekForStyles() {
   const theme = g('theme');
   const slogan = g('slogan');
   const keywords = g('keywords');
   const nameZh = g('name-zh');
-  if (!theme && !keywords) throw new Error('请先填写比赛主题或关键词');
-  const prompt = `请根据珠宝设计比赛主题，生成 4 个差异明显的参赛作品风格方向。只输出 JSON，不要解释。
+  if (!theme && !keywords) throw new Error(isKo() ? '먼저 공모전 주제나 키워드를 입력해 주세요' : '请先填写比赛主题或关键词');
+  const prompt = isKo()
+    ? `주얼리 디자인 공모전 주제를 바탕으로 성격이 뚜렷하게 다른 작품 스타일 방향 4개를 만들어라. JSON만 출력하고 설명은 하지 마라.
+
+공모전 이름: ${nameZh || '미입력'}
+주제: ${theme || '미입력'}
+영문 주제 / 슬로건: ${slogan || '미입력'}
+키워드: ${keywords || '미입력'}
+
+JSON 구조:
+{
+  "styleDirections": [
+    {"name":"2-6자 방향명","tag":"태그 2개, · 로 구분","desc":"한 줄 설명, 28자 이내 권장","tip1":"구체적인 디자인 팁, 28자 이내 권장","tip2":"재료/공정/표현 팁, 28자 이내 권장"}
+  ]
+}
+
+규칙:
+1. 반드시 4개를 생성한다.
+2. 네 방향은 각각 전위적 실험, 문화 서사, 자연/재료, 상업적 착용성 또는 인터랙션을 한 번씩 포함해야 한다.
+3. 네 방향이 같은 비주얼 언어에 머물면 안 되며 이름, 태그, 팁이 분명히 달라야 한다.
+4. 주얼리 디자인 공모전에 실제로 도움이 되는 조언만 쓰고 공허한 문장은 피한다.`
+    : `请根据珠宝设计比赛主题，生成 4 个差异明显的参赛作品风格方向。只输出 JSON，不要解释。
 
 比赛名称：${nameZh || '未填写'}
 主题：${theme || '未填写'}
@@ -853,19 +1377,23 @@ JSON 结构：
 2. 四个方向要分别覆盖：先锋实验、文化叙事、自然/材料、商业佩戴或互动体验。
 3. 不要四个都围绕同一种视觉语言，名称、标签、技巧要明显不同。
 4. 适合珠宝设计参赛，不写空泛鸡汤。`;
-  setStyleAiStatus('正在按主题生成风格方向...');
+  setStyleAiStatus(isKo() ? '주제로 4가지 스타일 방향을 생성하는 중...' : '正在按主题生成风格方向...');
   const data = await callDeepSeekJson([
-    {role:'system', content:'你是珠宝设计竞赛导师，擅长把抽象主题拆成多种可执行的作品风格方向。'},
+    {
+      role:'system',
+      content: isKo()
+        ? '너는 주얼리 디자인 공모전 멘토로서 추상적인 주제를 실행 가능한 작품 스타일 방향으로 나누는 데 능숙하다.'
+        : '你是珠宝设计竞赛导师，擅长把抽象主题拆成多种可执行的作品风格方向。'
+    },
     {role:'user', content:prompt}
   ], 0.7);
   if (!Array.isArray(data.styleDirections) || data.styleDirections.length < 4) {
-    throw new Error('DeepSeek 返回的风格方向不足 4 个，请再试一次');
+    throw new Error(isKo() ? 'DeepSeek가 4개 미만의 스타일 방향을 반환했습니다. 다시 시도해 주세요' : 'DeepSeek 返回的风格方向不足 4 个，请再试一次');
   }
   return data.styleDirections;
 }
-const safeHex = value => /^#[0-9a-fA-F]{6}$/.test(String(value || '').trim()) ? String(value).trim() : '';
-const visualTemplates = ['crystal','cyber','ink','botanical','atelier','poster','split','blueprint','brutal','luxe','neon','catalog'];
-function applyVisualStyle(visualStyle){
+
+function applyVisualStyle(visualStyle) {
   const defaults = {
     primary:'#7B5EA7', primaryLight:'#9B7BC7', primaryDark:'#5A3E85',
     accent:'#c9a84c', accentLight:'#e8cc88',
@@ -874,13 +1402,12 @@ function applyVisualStyle(visualStyle){
   };
   const v = {...defaults, ...(visualStyle || {})};
   const root = document.documentElement.style;
-  const pairs = [
+  [
     ['--purple', v.primary, defaults.primary], ['--purple-light', v.primaryLight, defaults.primaryLight], ['--purple-dark', v.primaryDark, defaults.primaryDark],
     ['--gold', v.accent, defaults.accent], ['--gold-light', v.accentLight, defaults.accentLight],
     ['--ai-dark-1', v.dark1, defaults.dark1], ['--ai-dark-2', v.dark2, defaults.dark2], ['--ai-dark-3', v.dark3, defaults.dark3],
     ['--ai-light-1', v.light1, defaults.light1], ['--ai-light-2', v.light2, defaults.light2], ['--ai-light-3', v.light3, defaults.light3]
-  ];
-  pairs.forEach(([key, value, fallback]) => root.setProperty(key, safeHex(value) || fallback));
+  ].forEach(([key, value, fallback]) => root.setProperty(key, safeHex(value) || fallback));
   document.body.classList.remove(
     'visual-editorial','visual-future','visual-organic','visual-gallery',
     'tpl-crystal','tpl-cyber','tpl-ink','tpl-botanical','tpl-atelier','tpl-poster',
@@ -891,20 +1418,58 @@ function applyVisualStyle(visualStyle){
   const template = visualTemplates.includes(visualStyle?.template) ? visualStyle.template : 'crystal';
   document.body.classList.add('tpl-' + template);
   document.body.dataset.visualTemplate = template;
-  if (visualStyle?.name) {
-    document.body.dataset.visualName = String(visualStyle.name).slice(0,24).toUpperCase();
-  }
+  if (visualStyle?.name) document.body.dataset.visualName = String(visualStyle.name).slice(0,24).toUpperCase();
 }
-async function askDeepSeekForVisualStyle(){
+
+async function askDeepSeekForVisualStyle() {
   const nameZh = g('name-zh');
   const theme = g('theme');
   const slogan = g('slogan');
   const keywords = g('keywords');
-  const styleNames = Array.from(document.querySelectorAll('.sc-name')).map(el=>el.value.trim()).filter(Boolean).join(' / ');
+  const styleNames = Array.from(document.querySelectorAll('.sc-name')).map(el => el.value.trim()).filter(Boolean).join(' / ');
   const currentTemplate = document.body.dataset.visualTemplate || 'none';
   const refreshSeed = Date.now().toString(36).slice(-6);
-  if (!theme && !keywords && !nameZh) throw new Error('请先填写比赛名称、主题或关键词');
-  const prompt = `请为一组小红书珠宝设计比赛帖子生成视觉主题。只输出 JSON，不要解释。
+  if (!theme && !keywords && !nameZh) throw new Error(isKo() ? '공모전 이름, 주제 또는 키워드를 먼저 입력해 주세요' : '请先填写比赛名称、主题或关键词');
+  const prompt = isKo()
+    ? `샤오홍슈용 주얼리 디자인 공모전 게시물 세트에 어울리는 비주얼 테마를 만들어라. JSON만 출력하고 설명은 하지 마라.
+
+공모전 이름: ${nameZh || '미입력'}
+주제: ${theme || '미입력'}
+영문 주제 / 슬로건: ${slogan || '미입력'}
+키워드: ${keywords || '미입력'}
+현재 스타일 방향: ${styleNames || '미입력'}
+현재 커버 템플릿: ${currentTemplate}
+새로고침 시드: ${refreshSeed}
+
+JSON 구조:
+{
+  "visualStyle": {
+    "name": "2-5자 영문 또는 발음 기반 이름",
+    "primary": "#RRGGBB",
+    "primaryLight": "#RRGGBB",
+    "primaryDark": "#RRGGBB",
+    "accent": "#RRGGBB",
+    "accentLight": "#RRGGBB",
+    "dark1": "#RRGGBB",
+    "dark2": "#RRGGBB",
+    "dark3": "#RRGGBB",
+    "light1": "#RRGGBB",
+    "light2": "#RRGGBB",
+    "light3": "#RRGGBB",
+    "layout": "editorial | future | organic | gallery",
+    "template": "crystal | cyber | ink | botanical | atelier | poster | split | blueprint | brutal | luxe | neon | catalog"
+  }
+}
+
+규칙:
+1. 6자리 HEX 값만 사용하고 rgba/hsl/gradient는 쓰지 마라.
+2. dark1/2/3은 커버와 시상 카드에서 흰 글자가 잘 읽히도록 충분히 어두워야 한다.
+3. light1/2/3은 정보 카드와 스타일 카드에서 어두운 글자가 잘 읽히도록 충분히 밝아야 한다.
+4. primary와 accent는 분명히 구분되어야 하며 모두 보라색/금색으로 몰리면 안 된다.
+5. 주제에 맞춰 미래적, 광물성, 동양 공예, 해양, 불꽃, 얼음 결정 같은 분위기를 설계한다.
+6. layout은 editorial, future, organic, gallery 중 하나만 사용한다.
+7. template은 지정된 목록 중 하나를 고르고, 현재 커버 템플릿과 최대한 다른 결과를 준다.`
+    : `请为一组小红书珠宝设计比赛帖子生成视觉主题。只输出 JSON，不要解释。
 
 比赛名称：${nameZh || '未填写'}
 主题：${theme || '未填写'}
@@ -942,15 +1507,21 @@ JSON 结构：
 5. 根据主题生成气质，例如未来感、自然矿物、东方工艺、海洋、火焰、冰晶等。
 6. layout 只能从 editorial、future、organic、gallery 中选一个。
 7. template 必须从 crystal、cyber、ink、botanical、atelier、poster、split、blueprint、brutal、luxe、neon、catalog 中选一个；本次必须尽量避开“当前封面模板”，让封面视觉明显换一版。`;
-  setVisualAiStatus('正在生成帖子视觉风格...');
+  setVisualAiStatus(isKo() ? '게시물 비주얼 스타일을 생성하는 중...' : '正在生成帖子视觉风格...');
   const data = await callDeepSeekJson([
-    {role:'system', content:'你是高级平面设计师，擅长为珠宝、艺术、设计竞赛生成高级且可读性稳定的社媒视觉配色系统。'},
+    {
+      role:'system',
+      content: isKo()
+        ? '너는 주얼리, 예술, 디자인 공모전용 소셜 비주얼 시스템을 설계하는 시니어 그래픽 디자이너다. 고급스럽고 가독성 높은 색 체계를 만든다.'
+        : '你是高级平面设计师，擅长为珠宝、艺术、设计竞赛生成高级且可读性稳定的社媒视觉配色系统。'
+    },
     {role:'user', content:prompt}
   ], 0.85);
-  if (!data.visualStyle) throw new Error('DeepSeek 没有返回 visualStyle');
+  if (!data.visualStyle) throw new Error(isKo() ? 'DeepSeek가 visualStyle을 반환하지 않았습니다' : 'DeepSeek 没有返回 visualStyle');
   return data.visualStyle;
 }
-function applyCompetitionData(data, url){
+
+function applyCompetitionData(data, url) {
   fillVal('name-zh', data.nameZh);
   fillVal('name-en', data.nameEn);
   fillVal('organizer', data.organizer);
@@ -976,12 +1547,12 @@ function applyCompetitionData(data, url){
 
   applyStyleDirections(data.styleDirections);
   const prizeEls = document.querySelectorAll('.prize-tier');
-  prizeEls.forEach(el=>{
+  prizeEls.forEach(el => {
     el.querySelector('.pt-name').value = '';
     el.querySelector('.pt-amount').value = '';
     el.querySelector('.pt-perks').value = '';
   });
-  (data.prizes || []).slice(0,4).forEach((item, i)=>{
+  (data.prizes || []).slice(0,4).forEach((item, i) => {
     const el = prizeEls[i];
     if (!el) return;
     if (item.name) el.querySelector('.pt-name').value = item.name;
@@ -989,49 +1560,52 @@ function applyCompetitionData(data, url){
     if (item.perks) el.querySelector('.pt-perks').value = item.perks;
   });
 }
-async function fillFromOfficialSite(){
+
+async function fillFromOfficialSite() {
   const btn = document.getElementById('ai-fill-btn');
   const url = g('ai-url') || g('url');
   if (!url) {
-    setAiStatus('请先填写比赛官网链接。', 'err');
+    setAiStatus(isKo() ? '먼저 공식 사이트 링크를 입력해 주세요.' : '请先填写比赛官网链接。', 'err');
     return;
   }
   btn.disabled = true;
-  btn.textContent = '读取中...';
+  btn.textContent = isKo() ? '불러오는 중...' : '读取中...';
   try {
     const content = await fetchOfficialContent(url);
     const data = await askDeepSeekForCompetition(content, url);
     applyCompetitionData(data, url);
-    generate();
-    setAiStatus('已自动填表并生成帖子。请人工核对日期、奖金和参赛资格。', 'ok');
+    generate(false);
+    setAiStatus(isKo() ? '자동 입력과 카드 생성이 완료되었습니다. 날짜, 상금, 참가 자격은 한 번 더 수동 검토해 주세요.' : '已自动填表并生成帖子。请人工核对日期、奖金和参赛资格。', 'ok');
   } catch (err) {
-    setAiStatus(err.message || 'AI 提取失败', 'err');
+    setAiStatus(err.message || (isKo() ? 'AI 추출에 실패했습니다' : 'AI 提取失败'), 'err');
   } finally {
     btn.disabled = false;
-    btn.textContent = '🤖 读取官网并自动填表';
+    btn.textContent = textPack().aiFillBtn;
   }
 }
-async function generateStylesFromTheme(){
+
+async function generateStylesFromTheme() {
   const btn = document.getElementById('ai-style-btn');
   btn.disabled = true;
-  btn.textContent = '生成中...';
+  btn.textContent = isKo() ? '생성 중...' : '生成中...';
   try {
     const styleDirections = await askDeepSeekForStyles();
     applyStyleDirections(styleDirections);
-    generate();
+    generate(false);
     switchImg(3, document.querySelectorAll('.img-tab')[2]);
-    setStyleAiStatus('已生成 4 个差异化风格方向。', 'ok');
+    setStyleAiStatus(isKo() ? '4가지 스타일 방향을 생성했습니다.' : '已生成 4 个差异化风格方向。', 'ok');
   } catch (err) {
-    setStyleAiStatus(err.message || '风格生成失败', 'err');
+    setStyleAiStatus(err.message || (isKo() ? '스타일 생성에 실패했습니다' : '风格生成失败'), 'err');
   } finally {
     btn.disabled = false;
-    btn.textContent = '🤖 按主题生成4个风格方向';
+    btn.textContent = textPack().aiStyleBtn;
   }
 }
-async function generateVisualStyleFromTheme(){
+
+async function generateVisualStyleFromTheme() {
   const btn = document.getElementById('ai-visual-btn');
   btn.disabled = true;
-  btn.textContent = '生成中...';
+  btn.textContent = isKo() ? '생성 중...' : '生成中...';
   try {
     const beforeTemplate = document.body.dataset.visualTemplate || '';
     const visualStyle = await askDeepSeekForVisualStyle();
@@ -1045,20 +1619,22 @@ async function generateVisualStyleFromTheme(){
       document.body.dataset.visualTemplateIndex = String(visualTemplates.indexOf(pickedTemplate));
     }
     applyVisualStyle(visualStyle);
-    generate();
+    generate(false);
     switchImg(1, document.querySelector('.img-tab'));
-    setVisualAiStatus(`已刷新封面模板：${visualStyle.template}${visualStyle.name ? ' / '+visualStyle.name : ''}`, 'ok');
+    setVisualAiStatus(isKo()
+      ? `커버 템플릿을 갱신했습니다: ${visualStyle.template}${visualStyle.name ? ' / ' + visualStyle.name : ''}`
+      : `已刷新封面模板：${visualStyle.template}${visualStyle.name ? ' / '+visualStyle.name : ''}`, 'ok');
   } catch (err) {
-    setVisualAiStatus(err.message || '视觉风格生成失败', 'err');
+    setVisualAiStatus(err.message || (isKo() ? '비주얼 스타일 생성에 실패했습니다' : '视觉风格生成失败'), 'err');
   } finally {
     btn.disabled = false;
-    btn.textContent = '🎨 AI 生成帖子视觉风格';
+    btn.textContent = textPack().aiVisualBtn;
   }
 }
 
-function generate(){
-  const nameZh = g('name-zh')||'比赛名称';
-  const nameEn = g('name-en')||'Competition Name';
+function generate(shouldScroll = true) {
+  const nameZh = g('name-zh') || (isKo() ? '공모전 이름' : '比赛名称');
+  const nameEn = g('name-en') || 'Competition Name';
   const organizer = g('organizer');
   const eligibility = g('eligibility');
   const theme = g('theme');
@@ -1073,108 +1649,146 @@ function generate(){
   const logic = g('logic');
   const extra = g('extra');
   const extraBenefits = g('extra-benefits');
-  const s1=+document.getElementById('s1').value||14;
-  const s2=+document.getElementById('s2').value||14;
-  const s3=+document.getElementById('s3').value||14;
-  const s4=+document.getElementById('s4').value||14;
+  const s1 = +document.getElementById('s1').value || 14;
+  const s2 = +document.getElementById('s2').value || 14;
+  const s3 = +document.getElementById('s3').value || 14;
+  const s4 = +document.getElementById('s4').value || 14;
 
-  const themeShort = theme.split('·').pop()?.trim()||theme;
+  const themeShort = theme.split('·').pop()?.trim() || theme;
   const themeCore = themeShort.split(/[，,。]|[··]/)[0].replace(/[\s「」]/g,'').slice(0,4);
 
-  /* ── Card 2 ── */
-  document.getElementById('c2-logo').textContent = document.body.dataset.visualName || ('COMPETITION · '+new Date().getFullYear());
-  document.getElementById('c2-en').textContent = nameEn.length>34?nameEn.slice(0,32)+'…':nameEn;
+  document.getElementById('c2-logo').textContent = document.body.dataset.visualName || ('COMPETITION · ' + new Date().getFullYear());
+  document.getElementById('c2-en').textContent = nameEn.length > 34 ? nameEn.slice(0,32) + '…' : nameEn;
   document.getElementById('c2-zh').textContent = nameZh;
   document.getElementById('c2-sub').textContent = nameEn;
-  document.getElementById('c2-date').textContent = deadline||'报名进行中';
-  document.getElementById('c2-slogan-zh').textContent = themeShort;
+  document.getElementById('c2-date').textContent = deadline || (isKo() ? '모집 진행 중' : '报名进行中');
+  document.getElementById('c2-slogan-zh').textContent = themeShort || (isKo() ? '주제' : '主题');
   document.getElementById('c2-slogan-en').textContent = slogan;
-  document.getElementById('c2-foot').textContent = '截止日期 / Deadline — '+(deadline||'TBD');
+  document.getElementById('c2-foot').textContent = isKo()
+    ? `마감일 / Deadline — ${deadline || 'TBD'}`
+    : `截止日期 / Deadline — ${deadline || 'TBD'}`;
 
-  /* ── Card 1 ── */
   document.getElementById('c1-en').textContent = nameEn.split(' ').slice(0,3).join(' ');
   document.getElementById('c1-zh').textContent = nameZh;
-  const rows=[
-    {l:'比赛名称',v:nameZh},
-    organizer&&{l:'主办单位',v:organizer},
-    eligibility&&{l:'参赛资格',v:eligibility},
-    (keywords||theme)&&{l:'主题关键词',v:keywords||theme},
-    {l:'比赛时间',v:(deadline?deadline+' 截止':'')+(resultDate?'\n'+resultDate+' 公布结果':'')},
-    submission&&{l:'提交内容',v:submission},
-    {l:'奖项含金量',v:'SCORE',sc:[{n:'主办方权威性',v:s1},{n:'行业认可度',v:s2},{n:'作品质量',v:s3},{n:'国际化程度',v:s4}]},
+  const rows = [
+    {l: isKo() ? '공모전 이름' : '比赛名称', v:nameZh},
+    organizer && {l: isKo() ? '주최 기관' : '主办单位', v:organizer},
+    eligibility && {l: isKo() ? '참가 자격' : '参赛资格', v:eligibility},
+    (keywords || theme) && {l: isKo() ? '주제 키워드' : '主题关键词', v:keywords || theme},
+    {l: isKo() ? '일정' : '比赛时间', v:(deadline ? `${deadline}${isKo() ? ' 마감' : ' 截止'}` : '') + (resultDate ? `\n${resultDate}${isKo() ? ' 결과 발표' : ' 公布结果'}` : '')},
+    submission && {l: isKo() ? '제출물' : '提交内容', v:submission},
+    {l: isKo() ? '수상 가치 점수' : '奖项含金量', v:'SCORE', sc:[
+      {n:isKo() ? '주최 기관의 권위' : '主办方权威性', v:s1},
+      {n:isKo() ? '업계 인지도' : '行业认可度', v:s2},
+      {n:isKo() ? '작품 요구 수준' : '作品质量', v:s3},
+      {n:isKo() ? '국제성' : '国际化程度', v:s4}
+    ]}
   ].filter(Boolean);
-  document.getElementById('c1-box').innerHTML = rows.map(r=>{
-    if(r.v==='SCORE') return `<div class="irow"><div class="ibullet"></div><div><div class="ilabel">${r.l}</div><div class="score-grid2">${r.sc.map(s=>`<div class="se"><span>${s.n}</span><div class="sb-wrap"><div class="sb" style="width:${s.v/20*100}%"></div></div><span class="sn">${s.v}/20</span></div>`).join('')}</div></div></div>`;
+  document.getElementById('c1-box').innerHTML = rows.map(r => {
+    if (r.v === 'SCORE') {
+      return `<div class="irow"><div class="ibullet"></div><div><div class="ilabel">${r.l}</div><div class="score-grid2">${r.sc.map(s => `<div class="se"><span>${s.n}</span><div class="sb-wrap"><div class="sb" style="width:${s.v / 20 * 100}%"></div></div><span class="sn">${s.v}/20</span></div>`).join('')}</div></div></div>`;
+    }
     return `<div class="irow"><div class="ibullet"></div><div><div class="ilabel">${r.l}</div><div class="ivalue">${r.v.replace(/\n/g,'<br>')}</div></div></div>`;
   }).join('');
 
-  /* ── Card 3 ── */
-  document.getElementById('c3-deco').textContent = themeCore.charAt(0)||'S';
-  document.getElementById('c3-sub').textContent = `「${themeCore}」的四种表达方向，仅供参考，鼓励突破`;
+  document.getElementById('c3-deco').textContent = themeCore.charAt(0) || 'S';
+  document.getElementById('c3-sub').textContent = isKo()
+    ? `「${themeCore || '주제'}」를 풀어내는 네 가지 방향입니다. 자유롭게 변형해 보세요`
+    : `「${themeCore}」的四种表达方向，仅供参考，鼓励突破`;
   const scInps = document.querySelectorAll('.style-card-input');
-  const nums=['01','02','03','04'];
-  document.getElementById('c3-grid').innerHTML = Array.from(scInps).map((inp,i)=>{
-    const name = inp.querySelector('.sc-name').value.trim()||`方向 ${i+1}`;
-    const tag  = inp.querySelector('.sc-tag').value.trim();
+  const nums = ['01','02','03','04'];
+  document.getElementById('c3-grid').innerHTML = Array.from(scInps).map((inp, i) => {
+    const name = inp.querySelector('.sc-name').value.trim() || (isKo() ? `방향 ${i+1}` : `方向 ${i+1}`);
+    const tag = inp.querySelector('.sc-tag').value.trim();
     const desc = inp.querySelector('.sc-desc').value.trim();
-    const t1   = inp.querySelector('.sc-t1').value.trim();
-    const t2   = inp.querySelector('.sc-t2').value.trim();
+    const t1 = inp.querySelector('.sc-t1').value.trim();
+    const t2 = inp.querySelector('.sc-t2').value.trim();
     return `<div class="c3-style-card">
       <div class="c3-card-num">${nums[i]}</div>
       <div class="c3-card-title">${name}</div>
-      ${tag?`<div class="c3-card-tag">${tag}</div>`:''}
+      ${tag ? `<div class="c3-card-tag">${tag}</div>` : ''}
       <div class="c3-card-desc">${desc}</div>
-      ${t1?`<div class="c3-tip">${t1}</div>`:''}
-      ${t2?`<div class="c3-tip">${t2}</div>`:''}
+      ${t1 ? `<div class="c3-tip">${t1}</div>` : ''}
+      ${t2 ? `<div class="c3-tip">${t2}</div>` : ''}
     </div>`;
   }).join('');
 
-  /* ── Card 4 ── */
-  document.getElementById('c4-sub').textContent = `${nameZh} · 奖项设置一览`;
+  document.getElementById('c4-sub').textContent = isKo()
+    ? `${nameZh} · 시상 구성 한눈에 보기`
+    : `${nameZh} · 奖项设置一览`;
   const tierEls = document.querySelectorAll('.prize-tier');
-  const tierColors=['tier-gold','tier-silver','tier-bronze','tier-special'];
-  const tierIcons=['🥇','🥈','🥉','✦'];
-  let tiersHTML='';
-  tierEls.forEach((t,i)=>{
-    const name=t.querySelector('.pt-name').value.trim();
-    const amount=t.querySelector('.pt-amount').value.trim();
-    const perks=t.querySelector('.pt-perks').value.trim();
-    if(!name) return;
-    const perkTags=perks?perks.split(/[、，,]/).map(p=>`<span class="c4-prize-tag">${p.trim()}</span>`).join(''):'';
-    tiersHTML+=`<div class="c4-tier ${tierColors[i]||'tier-special'}">
-      <div class="c4-tier-header"><span class="c4-tier-icon">${tierIcons[i]||'✦'}</span><span class="c4-tier-name">${name}</span></div>
-      <div class="c4-tier-body"><div class="c4-prize-amount">${amount}</div>${perkTags?`<div class="c4-prizes">${perkTags}</div>`:''}</div>
+  const tierColors = ['tier-gold','tier-silver','tier-bronze','tier-special'];
+  const tierIcons = ['🥇','🥈','🥉','✦'];
+  let tiersHTML = '';
+  tierEls.forEach((t, i) => {
+    const name = t.querySelector('.pt-name').value.trim();
+    const amount = t.querySelector('.pt-amount').value.trim();
+    const perks = t.querySelector('.pt-perks').value.trim();
+    if (!name) return;
+    const perkTags = perks ? perks.split(/[、，,]/).map(p => `<span class="c4-prize-tag">${p.trim()}</span>`).join('') : '';
+    tiersHTML += `<div class="c4-tier ${tierColors[i] || 'tier-special'}">
+      <div class="c4-tier-header"><span class="c4-tier-icon">${tierIcons[i] || '✦'}</span><span class="c4-tier-name">${name}</span></div>
+      <div class="c4-tier-body"><div class="c4-prize-amount">${amount}</div>${perkTags ? `<div class="c4-prizes">${perkTags}</div>` : ''}</div>
     </div>`;
   });
-  const tiersBox=document.getElementById('c4-tiers');
+  const tiersBox = document.getElementById('c4-tiers');
   tiersBox.classList.remove('compact','ultra-compact');
   tiersBox.style.bottom = extraBenefits ? '218px' : '76px';
-  tiersBox.innerHTML=tiersHTML;
-  const ew=document.getElementById('c4-extras-wrap');
-  if(extraBenefits){
-    document.getElementById('c4-extras').innerHTML=extraBenefits.split(/[，,]/).map(b=>`<span class="c4-extra-item">${b.trim()}</span>`).join('');
-    ew.style.display='block';
-  } else { ew.style.display='none'; }
+  tiersBox.innerHTML = tiersHTML;
+  const ew = document.getElementById('c4-extras-wrap');
+  if (extraBenefits) {
+    document.getElementById('c4-extras').innerHTML = extraBenefits.split(/[，,]/).map(b => `<span class="c4-extra-item">${b.trim()}</span>`).join('');
+    ew.style.display = 'block';
+  } else {
+    ew.style.display = 'none';
+  }
   if (tiersBox.scrollHeight > tiersBox.clientHeight) tiersBox.classList.add('compact');
   if (tiersBox.scrollHeight > tiersBox.clientHeight) tiersBox.classList.add('ultra-compact');
 
-  /* ── Caption ── */
-  const compShort=nameZh.replace(/\s/g,'');
-  document.getElementById('cap-title').textContent=`${compShort}｜主题解析`;
-  const aLines=analysis?analysis.split('\n').filter(l=>l.trim()).map(l=>'* '+l.trim()).join('\n'):'';
-  const prizeLines=Array.from(tierEls).map(t=>{
-    const n=t.querySelector('.pt-name').value.trim();
-    const a=t.querySelector('.pt-amount').value.trim();
-    const p=t.querySelector('.pt-perks').value.trim();
-    return n?`* ${n}：${a}${p?' / '+p:''}`:null;
+  const compShort = nameZh.replace(/\s/g,'');
+  document.getElementById('cap-title').textContent = isKo() ? `${compShort} | 주제 해설` : `${compShort}｜主题解析`;
+  const aLines = analysis ? analysis.split('\n').filter(l => l.trim()).map(l => `* ${l.trim()}`).join('\n') : '';
+  const prizeLines = Array.from(tierEls).map(t => {
+    const n = t.querySelector('.pt-name').value.trim();
+    const a = t.querySelector('.pt-amount').value.trim();
+    const p = t.querySelector('.pt-perks').value.trim();
+    return n ? `* ${n}${isKo() ? ': ' : '：'}${a}${p ? ' / ' + p : ''}` : null;
   }).filter(Boolean).join('\n');
-  const styleLines=Array.from(document.querySelectorAll('.sc-name')).map((el,i)=>{
-    const tag=document.querySelectorAll('.sc-tag')[i].value.trim();
-    return `* 方向${i+1}「${el.value.trim()}」${tag?'— '+tag:''}`;
+  const styleLines = Array.from(document.querySelectorAll('.sc-name')).map((el, i) => {
+    const tag = document.querySelectorAll('.sc-tag')[i].value.trim();
+    return isKo()
+      ? `* 방향 ${i+1} "${el.value.trim()}"${tag ? ' — ' + tag : ''}`
+      : `* 方向${i+1}「${el.value.trim()}」${tag ? '— ' + tag : ''}`;
   }).join('\n');
 
-  document.getElementById('cap-body').textContent=
-`${hook}
+  document.getElementById('cap-body').textContent = isKo()
+    ? `${hook}
+많은 분들이 가장 먼저 떠올리는 건:
+👉 겉모습의 형태를 만드는 일
+하지만 그건 표면적인 표현에 가깝습니다.
+차이를 만드는 지점은:
+👉 "${themeCore}"를 디자인 언어로 번역하는 데 있습니다.
+
+1. 주제의 본질
+"${themeShort}"는 단순한 형태가 아니라 하나의 은유입니다.
+${aLines}
+👉 핵심 로직:
+${logic || '상징 → 구조 → 형식 → 작품'}
+
+2. 스타일 방향 제안 (하나를 고르거나 섞어도 됩니다)
+${styleLines}
+
+3. 시상 구성
+${prizeLines}${extraBenefits ? '\n\n👉 ' + extraBenefits : ''}
+
+4. 기본 정보
+* 주최: ${organizer || '공식 사이트 참고'}
+* 마감: ${deadline || 'TBD'}${resultDate ? '\n* 결과 발표: ' + resultDate : ''}
+* 제출물: ${submission || '공식 사이트 참고'}${url ? '\n\n🔗 공식 사이트: ' + url : ''}${extra ? '\n\n' + extra : ''}
+
+참가를 고민 중이라면 먼저 주제를 해석하고, 자기만의 표현 방향을 선명하게 잡은 뒤 작업에 들어가는 것을 추천합니다.
+#공모전 #주얼리디자인 #디자인포트폴리오 #디자인공모전`
+    : `${hook}
 很多人第一反应是：
 👉 做表层形态
 但这只是表层表达。
@@ -1185,111 +1799,136 @@ function generate(){
 「${themeShort}」不仅是形态，更是隐喻：
 ${aLines}
 👉 核心逻辑：
-${logic||'符号 → 结构 → 形式 → 作品'}
+${logic || '符号 → 结构 → 形式 → 作品'}
 
 二、风格方向参考（4选1，也可融合）
 ${styleLines}
 
 三、奖项一览
-${prizeLines}${extraBenefits?'\n\n👉 '+extraBenefits:''}
+${prizeLines}${extraBenefits ? '\n\n👉 ' + extraBenefits : ''}
 
 四、基本信息
-* 主办：${organizer||'见官网'}
-* 截止：${deadline||'TBD'}${resultDate?'\n* 结果公布：'+resultDate:''}
-* 提交：${submission||'见官网'}${url?'\n\n🔗 官网：'+url:''}${extra?'\n\n'+extra:''}
+* 主办：${organizer || '见官网'}
+* 截止：${deadline || 'TBD'}${resultDate ? '\n* 结果公布：' + resultDate : ''}
+* 提交：${submission || '见官网'}${url ? '\n\n🔗 官网：' + url : ''}${extra ? '\n\n' + extra : ''}
 
 如果想参加，建议提前研究主题、明确风格方向再动笔～
 #设计比赛 #珠宝设计 #设计师 #比赛攻略`;
 
-  document.getElementById('info-text-title').textContent=`${compShort}｜比赛信息总结`;
-  const keywordText = keywords ? keywords.split(/[|｜，,、]/).map(k=>k.trim()).filter(Boolean).join(' / ') : '';
-  const scoreText = `主办方权威性 ${s1}/20｜行业认可度 ${s2}/20｜作品质量要求 ${s3}/20｜国际化程度 ${s4}/20`;
-  document.getElementById('info-text-body').textContent=
-`【比赛名称】
-${nameZh}${nameEn?'\n'+nameEn:''}
+  document.getElementById('info-text-title').textContent = isKo() ? `${compShort} | 공모전 정보 요약` : `${compShort}｜比赛信息总结`;
+  const keywordText = keywords ? keywords.split(/[|｜，,、]/).map(k => k.trim()).filter(Boolean).join(' / ') : '';
+  const scoreText = isKo()
+    ? `주최 기관의 권위 ${s1}/20｜업계 인지도 ${s2}/20｜작품 요구 수준 ${s3}/20｜국제성 ${s4}/20`
+    : `主办方权威性 ${s1}/20｜行业认可度 ${s2}/20｜作品质量要求 ${s3}/20｜国际化程度 ${s4}/20`;
+  document.getElementById('info-text-body').textContent = isKo()
+    ? `[공모전 이름]
+${nameZh}${nameEn ? '\n' + nameEn : ''}
+
+[주최 기관]
+${organizer || '공식 사이트 참고'}
+
+[참가 자격]
+${eligibility || '공식 사이트 참고'}
+
+[공모전 주제]
+${theme || '공식 사이트 참고'}${slogan ? '\n' + slogan : ''}
+
+[주제 키워드]
+${keywordText || themeShort || '공식 사이트 참고'}
+
+[주요 일정]
+접수 마감: ${deadline || 'TBD'}${resultDate ? '\n결과 발표: ' + resultDate : ''}
+
+[제출물]
+${submission || '공식 사이트 참고'}
+
+[시상 구성]
+${prizeLines || '공식 사이트 참고'}${extraBenefits ? '\n' + extraBenefits : ''}
+
+[추천 스타일 방향]
+${styleLines || '주제를 바탕으로 자유롭게 확장 가능'}
+
+[수상 가치 참고]
+${scoreText}
+
+[공식 사이트]
+${url || '공식 사이트 참고'}
+
+[메모]
+${extra || '최종 제출 전에는 공식 사이트 기준으로 마감일, 규격, 저작권 조건, 제출 방식을 다시 확인하세요.'}`
+    : `【比赛名称】
+${nameZh}${nameEn ? '\n' + nameEn : ''}
 
 【主办单位】
-${organizer||'见官网'}
+${organizer || '见官网'}
 
 【参赛资格】
-${eligibility||'见官网'}
+${eligibility || '见官网'}
 
 【比赛主题】
-${theme||'见官网'}${slogan?'\n'+slogan:''}
+${theme || '见官网'}${slogan ? '\n' + slogan : ''}
 
 【主题关键词】
-${keywordText||themeShort||'见官网'}
+${keywordText || themeShort || '见官网'}
 
 【重要时间】
-报名截止：${deadline||'TBD'}${resultDate?'\n结果公布：'+resultDate:''}
+报名截止：${deadline || 'TBD'}${resultDate ? '\n结果公布：' + resultDate : ''}
 
 【提交内容】
-${submission||'见官网'}
+${submission || '见官网'}
 
 【奖项设置】
-${prizeLines||'见官网'}${extraBenefits?'\n'+extraBenefits:''}
+${prizeLines || '见官网'}${extraBenefits ? '\n' + extraBenefits : ''}
 
 【推荐创作方向】
-${styleLines||'可根据主题自由延展'}
+${styleLines || '可根据主题自由延展'}
 
 【含金量参考】
 ${scoreText}
 
 【官网链接】
-${url||'见官网'}
+${url || '见官网'}
 
 【备注】
-${extra||'建议以官网最终信息为准，提交前核对报名截止时间、作品规格、版权要求与提交方式。'}`;
+${extra || '建议以官网最终信息为准，提交前核对报名截止时间、作品规格、版权要求与提交方式。'}`;
 
-  const out=document.getElementById('output-area');
-  out.style.display='block';
-  document.getElementById('images-panel').style.display='block';
-  document.getElementById('caption-panel').style.display='none';
-  document.getElementById('info-text-panel').style.display='none';
+  const out = document.getElementById('output-area');
+  out.style.display = 'block';
+  document.getElementById('images-panel').style.display = 'block';
+  document.getElementById('caption-panel').style.display = 'none';
+  document.getElementById('info-text-panel').style.display = 'none';
   document.querySelectorAll('.tab')[0].classList.add('active');
   document.querySelectorAll('.tab')[1].classList.remove('active');
   document.querySelectorAll('.tab')[2].classList.remove('active');
   switchImg(1, document.querySelector('.img-tab'));
-  out.scrollIntoView({behavior:'smooth',block:'start'});
+  if (shouldScroll) out.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
-function copyCaption(){
-  const t=document.getElementById('cap-title').textContent;
-  const b=document.getElementById('cap-body').textContent;
-  navigator.clipboard.writeText(t+'\n\n'+b).then(()=>{
-    const btn=document.querySelector('.copy-btn');
-    btn.textContent='✅ 已复制！';
-    setTimeout(()=>btn.textContent='📋 复制文案',2000);
+function copyCaption() {
+  const t = document.getElementById('cap-title').textContent;
+  const b = document.getElementById('cap-body').textContent;
+  navigator.clipboard.writeText(t + '\n\n' + b).then(() => {
+    const btn = document.getElementById('copy-caption-btn');
+    btn.textContent = textPack().copyCaptionDone;
+    setTimeout(() => { btn.textContent = textPack().copyCaptionBtn; }, 2000);
   });
 }
-function copyInfoText(){
-  const t=document.getElementById('info-text-title').textContent;
-  const b=document.getElementById('info-text-body').textContent;
-  navigator.clipboard.writeText(t+'\n\n'+b).then(()=>{
-    const btn=document.querySelector('#info-text-panel .copy-btn');
-    btn.textContent='✅ 已复制！';
-    setTimeout(()=>btn.textContent='📋 复制文字版信息',2000);
+
+function copyInfoText() {
+  const t = document.getElementById('info-text-title').textContent;
+  const b = document.getElementById('info-text-body').textContent;
+  navigator.clipboard.writeText(t + '\n\n' + b).then(() => {
+    const btn = document.getElementById('copy-info-btn');
+    btn.textContent = textPack().copyInfoDone;
+    setTimeout(() => { btn.textContent = textPack().copyInfoBtn; }, 2000);
   });
 }
-const cardFileNames = {
-  1:'02-info-card',
-  2:'01-cover',
-  3:'03-style-directions',
-  4:'04-awards'
-};
-const cardToView = {2:1, 1:2, 3:3, 4:4};
-function setDownloadStatus(msg){
-  const el=document.getElementById('download-status');
-  if(el) el.textContent=msg;
-}
-function safeFilePart(text){
-  return String(text || 'competition').replace(/[\\/:*?"<>|]/g,'').replace(/\s+/g,'-').slice(0,32) || 'competition';
-}
-async function renderCardToCanvas(cardId){
-  if (!window.html2canvas) throw new Error('图片导出组件加载失败，请检查网络后刷新页面');
-  const card=document.getElementById('card'+cardId);
-  if (!card) throw new Error('未找到要导出的卡片');
-  await document.fonts?.ready?.catch(()=>{});
+
+async function renderCardToCanvas(cardId) {
+  if (!window.html2canvas) throw new Error(isKo() ? '이미지 내보내기 라이브러리를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요' : '图片导出组件加载失败，请检查网络后刷新页面');
+  const card = document.getElementById('card' + cardId);
+  if (!card) throw new Error(isKo() ? '내보낼 카드를 찾지 못했습니다' : '未找到要导出的卡片');
+  await document.fonts?.ready?.catch(() => {});
   return html2canvas(card, {
     backgroundColor:null,
     scale:2,
@@ -1301,46 +1940,54 @@ async function renderCardToCanvas(cardId){
     windowHeight:1400
   });
 }
-function saveCanvas(canvas, filename){
-  const link=document.createElement('a');
-  link.download=filename;
-  link.href=canvas.toDataURL('image/png');
+
+function saveCanvas(canvas, filename) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
   document.body.appendChild(link);
   link.click();
   link.remove();
 }
-async function downloadCard(cardId){
-  const currentView=Number(document.body.dataset.currentView || 1);
-  const targetView=cardToView[cardId] || 1;
-  const currentBtn=document.querySelectorAll('.img-tab')[targetView-1];
+
+async function downloadCard(cardId) {
+  const currentView = Number(document.body.dataset.currentView || 1);
+  const targetView = cardToView[cardId] || 1;
+  const currentBtn = document.querySelectorAll('.img-tab')[targetView - 1];
   switchImg(targetView, currentBtn);
-  setDownloadStatus(`正在导出第 ${cardId} 张...`);
-  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-  const canvas=await renderCardToCanvas(cardId);
-  const prefix=safeFilePart(g('name-zh'));
+  setDownloadStatus(isKo() ? `${cardId}번 카드를 내보내는 중...` : `正在导出第 ${cardId} 张...`);
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  const canvas = await renderCardToCanvas(cardId);
+  const prefix = safeFilePart(g('name-zh'));
   saveCanvas(canvas, `${prefix}-${cardFileNames[cardId] || 'card'}.png`);
-  if (currentView !== targetView) switchImg(currentView, document.querySelectorAll('.img-tab')[currentView-1]);
-  setDownloadStatus(`已导出第 ${cardId} 张 PNG`);
+  if (currentView !== targetView) switchImg(currentView, document.querySelectorAll('.img-tab')[currentView - 1]);
+  setDownloadStatus(isKo() ? `${cardId}번 PNG 내보내기 완료` : `已导出第 ${cardId} 张 PNG`);
 }
-async function downloadCurrentCard(){
+
+async function downloadCurrentCard() {
   try {
     await downloadCard(Number(document.body.dataset.currentCard || 1));
   } catch (err) {
-    setDownloadStatus(err.message || '导出失败');
-  }
-}
-async function downloadAllCards(){
-  const currentView=Number(document.body.dataset.currentView || 1);
-  try {
-    for (const id of [2,1,3,4]) await downloadCard(id);
-    switchImg(currentView, document.querySelectorAll('.img-tab')[currentView-1]);
-    setDownloadStatus('4 张 PNG 已全部导出');
-  } catch (err) {
-    setDownloadStatus(err.message || '导出失败');
+    setDownloadStatus(err.message || (isKo() ? '내보내기에 실패했습니다' : '导出失败'));
   }
 }
 
-window.onload=()=>generate();
+async function downloadAllCards() {
+  const currentView = Number(document.body.dataset.currentView || 1);
+  try {
+    for (const id of [2,1,3,4]) await downloadCard(id);
+    switchImg(currentView, document.querySelectorAll('.img-tab')[currentView - 1]);
+    setDownloadStatus(isKo() ? '4장의 PNG를 모두 내보냈습니다' : '4 张 PNG 已全部导出');
+  } catch (err) {
+    setDownloadStatus(err.message || (isKo() ? '내보내기에 실패했습니다' : '导出失败'));
+  }
+}
+
+window.onload = () => {
+  const savedLang = getStoredLang() === 'ko' ? 'ko' : 'zh';
+  setLanguage(savedLang, {skipGenerate:true, prevLang: savedLang === 'ko' ? 'zh' : 'ko'});
+  generate(false);
+};
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # ContestRedbook
 
-[中文 README](./README.md)
+[中文版本](./README.zh.md) | [홈 README](./README.md)
 
 공모전 정보를 바로 샤오홍슈 게시물 형태로 가공해 주는 경량 프런트엔드 도구다.
 
